@@ -4,45 +4,43 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Car,
   LayoutDashboard,
+  Car,
   Calendar,
   Users,
-  TrendingUp,
-  Settings,
-  HelpCircle,
-  Headphones,
-  LogOut,
-  Search,
-  Bell,
-  Sparkles,
-  Zap,
-  RefreshCw,
-  DollarSign,
-  Activity,
-  ArrowRight,
-  CheckCircle2,
-  Clock,
-  MapPin,
-  FileCheck,
-  ChevronRight,
-  Filter,
-  CarFront,
-  Plus,
-  Trash2,
-  Edit,
-  ShieldCheck,
   CreditCard,
   Star,
   Wrench,
-  AlertTriangle,
+  TrendingUp,
+  Settings,
+  HelpCircle,
+  LogOut,
+  Search,
+  Bell,
+  Maximize2,
+  Calendar as CalendarIcon,
+  ChevronDown,
+  ArrowUpRight,
+  TrendingDown,
+  Plus,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  Clock,
   Ban,
   X,
-  FileSpreadsheet,
-  Check,
+  MapPin,
+  Globe,
   SlidersHorizontal,
-  Globe2,
-  Navigation
+  ChevronRight,
+  Check,
+  DollarSign,
+  Activity,
+  Layers,
+  ShoppingBag,
+  FileText,
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -51,10 +49,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell
+  CartesianGrid
 } from 'recharts';
 import { api } from '@/services/api';
 import {
@@ -65,8 +60,7 @@ import {
   Payment,
   Review,
   AvailabilityBlock,
-  PricingRule,
-  AutomationLog
+  PricingRule
 } from '@/types';
 
 export default function AdminDashboardPage() {
@@ -82,19 +76,20 @@ export default function AdminDashboardPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [availabilityBlocks, setAvailabilityBlocks] = useState<AvailabilityBlock[]>([]);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
-  const [automationLogs, setAutomationLogs] = useState<AutomationLog[]>([]);
-
   const [refreshing, setRefreshing] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Modals for CRUD & Operations
+  // Filters & State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState('01 Jan 2026 - 31 Dec 2026');
+  const [analyticsYear, setAnalyticsYear] = useState('2026');
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  // Modals
   const [addCarModalOpen, setAddCarModalOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<Vehicle | null>(null);
   const [scheduleMaintenanceModalOpen, setScheduleMaintenanceModalOpen] = useState(false);
   const [replyingReview, setReplyingReview] = useState<Review | null>(null);
   const [adminReplyText, setAdminReplyText] = useState('');
-  const [selectedBookingDetail, setSelectedBookingDetail] = useState<Booking | null>(null);
 
   // New Car Form State
   const [carForm, setCarForm] = useState({
@@ -122,7 +117,7 @@ export default function AdminDashboardPage() {
     notes: 'Scheduled 20,000 km engine inspection & brake overhaul',
   });
 
-  // Load all telemetry
+  // Load telemetry
   const loadDashboardData = async () => {
     setRefreshing(true);
     try {
@@ -134,8 +129,7 @@ export default function AdminDashboardPage() {
         paymentsData,
         reviewsData,
         blocksData,
-        rulesData,
-        logsData
+        rulesData
       ] = await Promise.all([
         api.getDashboardAnalytics(),
         api.getBookings(),
@@ -144,8 +138,7 @@ export default function AdminDashboardPage() {
         api.getPayments(),
         api.getReviews(),
         api.getAvailabilityBlocks(),
-        api.getPricingRules(),
-        api.getAutomationLogs()
+        api.getPricingRules()
       ]);
 
       setMetrics(analyticsData);
@@ -156,7 +149,6 @@ export default function AdminDashboardPage() {
       setReviews(reviewsData);
       setAvailabilityBlocks(blocksData);
       setPricingRules(rulesData);
-      setAutomationLogs(logsData);
     } catch (err) {
       console.error('Failed to load admin telemetry', err);
     } finally {
@@ -168,7 +160,7 @@ export default function AdminDashboardPage() {
     loadDashboardData();
   }, []);
 
-  // Handlers for Cars CRUD
+  // CRUD Handlers
   const handleSaveCar = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
@@ -194,7 +186,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleDeleteCar = async (carId: string) => {
-    if (!confirm('Are you sure you want to decommission/delete this car from fleet?')) return;
+    if (!confirm('Are you sure you want to delete this car from fleet?')) return;
     try {
       await api.deleteVehicle(carId);
       setVehicles(prev => prev.filter(c => c.id !== carId));
@@ -203,42 +195,15 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Handlers for Bookings Lifecycle
   const handleBookingStatusChange = async (id: string, newStatus: string) => {
     try {
       const updated = await api.updateBookingStatus(id, newStatus);
       setBookings(prev => prev.map(b => b.id === id ? updated : b));
-      if (selectedBookingDetail?.id === id) {
-        setSelectedBookingDetail(updated);
-      }
     } catch {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus as any } : b));
     }
   };
 
-  const handleCancelBooking = async (bookingId: string) => {
-    if (!confirm('Cancel this booking and issue 100% full refund?')) return;
-    try {
-      const updated = await api.cancelBooking(bookingId, 'Admin cancelled reservation');
-      setBookings(prev => prev.map(b => b.id === bookingId ? updated : b));
-      alert(`Booking ${updated.bookingCode} cancelled and $${updated.refundAmount} refunded.`);
-    } catch (err: any) {
-      alert(`Cancellation failed: ${err.message || 'Error'}`);
-    }
-  };
-
-  // Handlers for Users Status
-  const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
-    const nextStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    try {
-      const updated = await api.updateUserStatus(userId, nextStatus);
-      setUsers(prev => prev.map(u => u.id === userId ? updated : u));
-    } catch (err: any) {
-      alert(`Status update error: ${err.message || 'Failed'}`);
-    }
-  };
-
-  // Handlers for Reviews Moderation
   const handleModerateReview = async (reviewId: string, isApproved: boolean) => {
     try {
       const updated = await api.moderateReview(reviewId, isApproved);
@@ -260,7 +225,16 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Handlers for Maintenance Scheduling
+  const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    try {
+      const updated = await api.updateUserStatus(userId, nextStatus);
+      setUsers(prev => prev.map(u => u.id === userId ? updated : u));
+    } catch (err: any) {
+      alert(`Status update error: ${err.message || 'Failed'}`);
+    }
+  };
+
   const handleSaveMaintenance = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!maintForm.carId) {
@@ -275,7 +249,7 @@ export default function AdminDashboardPage() {
       });
       setAvailabilityBlocks(prev => [created, ...prev]);
       setScheduleMaintenanceModalOpen(false);
-      alert('Maintenance block created. Vehicle locked from booking calendar.');
+      alert('Maintenance block created.');
     } catch (err: any) {
       alert(`Maintenance error: ${err.message || 'Failed'}`);
     }
@@ -286,151 +260,228 @@ export default function AdminDashboardPage() {
       await api.deleteAvailabilityBlock(blockId);
       setAvailabilityBlocks(prev => prev.filter(b => b.id !== blockId));
     } catch (err: any) {
-      alert(`Error releasing block: ${err.message || 'Failed'}`);
+      alert(`Error: ${err.message || 'Failed'}`);
     }
   };
 
+  // Best seller list
+  const bestSellerCars = [
+    { id: '1', name: 'Range Rover Velar', category: 'Luxury SUV', sales: '5,147', image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=300&q=80' },
+    { id: '2', name: 'Audi S5 Sportback', category: 'Executive Sedan', sales: '4,768', image: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&w=300&q=80' },
+    { id: '3', name: 'BMW M5 Competition', category: 'Sports Luxury', sales: '3,175', image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=300&q=80' },
+    { id: '4', name: 'Tesla Model X Plaid', category: 'Electric SUV', sales: '2,845', image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=300&q=80' },
+    { id: '5', name: 'Porsche Cayenne GT', category: 'Super SUV', sales: '1,178', image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=300&q=80' }
+  ];
+
+  // Recent transactions table
+  const recentTransactions = [
+    {
+      id: '1',
+      name: 'Range Rover Velar',
+      date: '10 Nov',
+      payment: 'PayPal',
+      status: 'Success',
+      amount: '$2,450.00',
+      image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=150&q=80'
+    },
+    {
+      id: '2',
+      name: 'Audi S5 Sportback',
+      date: '09 Nov',
+      payment: 'Apple Pay',
+      status: 'Pending',
+      amount: '$850.00',
+      image: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&w=150&q=80'
+    },
+    {
+      id: '3',
+      name: 'BMW M5 Competition',
+      date: '08 Nov',
+      payment: 'Stripe Card',
+      status: 'Success',
+      amount: '$240.10',
+      image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=150&q=80'
+    },
+    {
+      id: '4',
+      name: 'Tesla Model X Plaid',
+      date: '07 Nov',
+      payment: 'Mastercard',
+      status: 'Success',
+      amount: '$2,680.00',
+      image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=150&q=80'
+    },
+    {
+      id: '5',
+      name: 'Porsche Cayenne GT',
+      date: '06 Nov',
+      payment: 'Visa Direct',
+      status: 'Success',
+      amount: '$175.50',
+      image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=150&q=80'
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F8F9FB] flex text-slate-900 font-['Plus_Jakarta_Sans'] antialiased">
+    <div className="min-h-screen bg-[#F4F5F8] flex text-[#333843] font-['Plus_Jakarta_Sans',sans-serif] antialiased">
       
-      {/* 1. Left Sidebar Navigation (Exact Figma Style) */}
-      <aside className="w-64 bg-white border-r border-slate-200/80 hidden lg:flex flex-col justify-between p-6 shrink-0 shadow-sm">
-        <div className="space-y-7">
+      {/* 1. LEFT SIDEBAR (EXACT FIGMA LAYOUT) */}
+      <aside className="w-[260px] bg-white border-r border-[#E9EAF0] hidden lg:flex flex-col justify-between shrink-0 shadow-sm">
+        <div className="p-6 space-y-6 overflow-y-auto">
           
-          {/* Brand Logo */}
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 px-2 group">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform duration-200">
-              <Car className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-[#FF7A00] flex items-center justify-center shadow-md shadow-orange-500/20 text-white font-bold">
+              <Car className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-extrabold text-xl tracking-tight text-slate-900">
-                RENT<span className="text-blue-600">CARS</span>
+              <span className="font-extrabold text-xl tracking-tight text-[#111827]">
+                RENT<span className="text-[#FF7A00]">CARS</span>
               </span>
             </div>
           </Link>
 
           {/* MAIN MENU */}
-          <div className="space-y-1.5">
-            <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-3 mb-2">
-              Main Menu
+          <div className="space-y-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF] px-3 mb-2">
+              Main
             </div>
             
             <button
               onClick={() => setActiveNav('dashboard')}
-              className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
                 activeNav === 'dashboard'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                  ? 'bg-[#FFF4EC] text-[#FF7A00]'
+                  : 'text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB]'
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Dashboard</span>
+              <div className="flex items-center gap-3">
+                <LayoutDashboard className="w-[18px] h-[18px]" />
+                <span>Dashboard</span>
+              </div>
             </button>
 
             <button
               onClick={() => setActiveNav('fleet')}
-              className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
                 activeNav === 'fleet'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                  ? 'bg-[#FFF4EC] text-[#FF7A00]'
+                  : 'text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB]'
               }`}
             >
-              <Car className="w-4 h-4" />
-              <span>Car Fleet ({vehicles.length})</span>
+              <div className="flex items-center gap-3">
+                <Car className="w-[18px] h-[18px]" />
+                <span>Car Fleet</span>
+              </div>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">{vehicles.length}</span>
             </button>
 
             <button
               onClick={() => setActiveNav('bookings')}
-              className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
                 activeNav === 'bookings'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                  ? 'bg-[#FFF4EC] text-[#FF7A00]'
+                  : 'text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB]'
               }`}
             >
-              <FileCheck className="w-4 h-4" />
-              <span>Bookings ({bookings.length})</span>
+              <div className="flex items-center gap-3">
+                <FileText className="w-[18px] h-[18px]" />
+                <span>Bookings</span>
+              </div>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">{bookings.length}</span>
             </button>
 
             <button
               onClick={() => setActiveNav('users')}
-              className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
                 activeNav === 'users'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                  ? 'bg-[#FFF4EC] text-[#FF7A00]'
+                  : 'text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB]'
               }`}
             >
-              <Users className="w-4 h-4" />
-              <span>Customers ({users.length})</span>
+              <div className="flex items-center gap-3">
+                <Users className="w-[18px] h-[18px]" />
+                <span>Customers</span>
+              </div>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">{users.length}</span>
             </button>
 
             <button
               onClick={() => setActiveNav('payments')}
-              className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
                 activeNav === 'payments'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                  ? 'bg-[#FFF4EC] text-[#FF7A00]'
+                  : 'text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB]'
               }`}
             >
-              <CreditCard className="w-4 h-4" />
-              <span>Payments ({payments.length})</span>
+              <div className="flex items-center gap-3">
+                <CreditCard className="w-[18px] h-[18px]" />
+                <span>Payments</span>
+              </div>
             </button>
 
             <button
               onClick={() => setActiveNav('reviews')}
-              className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
                 activeNav === 'reviews'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                  ? 'bg-[#FFF4EC] text-[#FF7A00]'
+                  : 'text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB]'
               }`}
             >
-              <Star className="w-4 h-4" />
-              <span>Reviews ({reviews.length})</span>
+              <div className="flex items-center gap-3">
+                <Star className="w-[18px] h-[18px]" />
+                <span>Reviews</span>
+              </div>
             </button>
 
             <button
               onClick={() => setActiveNav('availability')}
-              className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
                 activeNav === 'availability'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                  ? 'bg-[#FFF4EC] text-[#FF7A00]'
+                  : 'text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB]'
               }`}
             >
-              <Wrench className="w-4 h-4" />
-              <span>Availability / Holds</span>
+              <div className="flex items-center gap-3">
+                <Wrench className="w-[18px] h-[18px]" />
+                <span>Availability Holds</span>
+              </div>
             </button>
 
             <button
               onClick={() => setActiveNav('reports')}
-              className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
                 activeNav === 'reports'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                  ? 'bg-[#FFF4EC] text-[#FF7A00]'
+                  : 'text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB]'
               }`}
             >
-              <TrendingUp className="w-4 h-4" />
-              <span>Reports</span>
+              <div className="flex items-center gap-3">
+                <TrendingUp className="w-[18px] h-[18px]" />
+                <span>Reports</span>
+              </div>
             </button>
           </div>
 
           {/* PREFERENCES */}
-          <div className="space-y-1.5 pt-2">
-            <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-3 mb-2">
-              Preferences
+          <div className="space-y-1 pt-3 border-t border-[#F1F2F4]">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF] px-3 mb-2">
+              Settings & Preferences
             </div>
 
             <button
-              onClick={() => alert('Settings & Gateway configurations are active.')}
-              className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+              onClick={() => alert('Settings configured.')}
+              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-[13px] font-medium text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB] transition-colors"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-[18px] h-[18px]" />
               <span>Settings</span>
             </button>
 
             <button
-              onClick={() => alert('Support concierge 24/7 hotline: +880 1700 112233')}
-              className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+              onClick={() => alert('Help Center: support@rentcars.com')}
+              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-[13px] font-medium text-[#667085] hover:text-[#FF7A00] hover:bg-[#F9FAFB] transition-colors"
             >
-              <HelpCircle className="w-4 h-4" />
+              <HelpCircle className="w-[18px] h-[18px]" />
               <span>Help Center</span>
             </button>
           </div>
@@ -438,10 +489,10 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Exit & Logout CTA */}
-        <div className="pt-4 border-t border-slate-100">
+        <div className="p-6 border-t border-[#E9EAF0]">
           <Link
             href="/"
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-[#E11D48] hover:bg-[#FFF1F2] transition-colors"
           >
             <LogOut className="w-4 h-4" />
             <span>Exit to Main Site</span>
@@ -449,248 +500,232 @@ export default function AdminDashboardPage() {
         </div>
       </aside>
 
-      {/* 2. Main Content Area */}
+      {/* 2. MAIN DASHBOARD CONTENT */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         
-        {/* Top Header Bar */}
-        <header className="h-20 bg-white border-b border-slate-200/80 px-6 sm:px-8 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-sm">
+        {/* TOP HEADER BAR (EXACT FIGMA DESIGN) */}
+        <header className="h-[74px] bg-white border-b border-[#E9EAF0] px-8 flex items-center justify-between gap-6 sticky top-0 z-30 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           
           {/* Search Box */}
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
             <input
               type="text"
-              placeholder="Search anything here..."
+              placeholder="Search something here..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500 placeholder-slate-400 transition-colors"
+              className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 py-2.5 text-xs text-[#111827] focus:outline-none focus:border-[#FF7A00] placeholder-[#9CA3AF] transition-all"
             />
           </div>
 
-          {/* Actions & Profile */}
-          <div className="flex items-center gap-4">
+          {/* Right Header Actions */}
+          <div className="flex items-center gap-3.5">
             
+            {/* Refresh Button */}
             <button
               onClick={loadDashboardData}
               disabled={refreshing}
-              className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 transition-colors"
-              title="Refresh Live Telemetry"
+              className="p-2 rounded-xl bg-[#F9FAFB] hover:bg-[#F3F4F6] border border-[#E5E7EB] text-[#667085] transition-colors"
+              title="Refresh Telemetry"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#FF7A00]' : ''}`} />
+            </button>
+
+            {/* Date Range Selector Pill */}
+            <div className="hidden md:flex items-center gap-2 bg-[#F9FAFB] border border-[#E5E7EB] px-3.5 py-2 rounded-xl text-xs font-semibold text-[#374151]">
+              <CalendarIcon className="w-3.5 h-3.5 text-[#6B7280]" />
+              <span>01 Jan 2026 - 31 Dec 2026</span>
+              <ChevronDown className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            </div>
+
+            {/* Orange + Add New Button */}
+            <button
+              onClick={() => {
+                setEditingCar(null);
+                setAddCarModalOpen(true);
+              }}
+              className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-bold text-xs shadow-sm shadow-orange-500/20 transition-all hover:scale-[1.02]"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Add New Car</span>
             </button>
 
             {/* Notification Bell */}
             <div className="relative">
-              <button className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 transition-colors relative">
+              <button className="p-2.5 rounded-xl bg-[#F9FAFB] hover:bg-[#F3F4F6] border border-[#E5E7EB] text-[#667085] relative">
                 <Bell className="w-4 h-4" />
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#EF4444] ring-2 ring-white"></span>
               </button>
             </div>
 
-            <div className="h-6 w-[1px] bg-slate-200 mx-1 hidden sm:block"></div>
-
-            {/* Admin User Profile */}
-            <div className="flex items-center gap-3">
-              <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-200 border border-slate-300">
+            {/* Admin Profile */}
+            <div className="flex items-center gap-3 pl-2 border-l border-[#E5E7EB]">
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-slate-200 border border-slate-300">
                 <Image
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"
-                  alt="Admin User"
+                  alt="Mike Willcox Admin"
                   fill
                   className="object-cover"
                 />
               </div>
-              <div className="hidden sm:block text-left">
-                <div className="text-xs font-bold text-slate-900 leading-tight">Shahriar Admin</div>
-                <div className="text-[11px] text-slate-500 font-medium">Fleet Executive</div>
+              <div className="hidden xl:block text-left">
+                <div className="text-xs font-bold text-[#111827] leading-tight">Mike Willcox</div>
+                <div className="text-[10px] text-[#9CA3AF] font-medium">Super Admin</div>
               </div>
             </div>
 
           </div>
         </header>
 
-        {/* Dynamic Main Body Content */}
-        <main className="p-6 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
+        {/* 3. DYNAMIC MAIN BODY */}
+        <main className="p-8 space-y-7 max-w-[1400px] w-full mx-auto">
           
           {/* ========================================================= */}
-          {/* TAB 1: EXACT FIGMA DASHBOARD */}
+          {/* TAB 1: EXACT FIGMA DASHBOARD VIEW */}
           {/* ========================================================= */}
           {activeNav === 'dashboard' && (
-            <div className="space-y-8">
+            <div className="space-y-7">
               
-              {/* TOP 3 HIGHLIGHT BANNERS */}
+              {/* TOP 3 CARDS ROW (GREETING + TOTAL SALES + TOTAL ORDERS) */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 
-                {/* 1. Welcome Card (White Card with Graphic) */}
-                <div className="md:col-span-5 rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden">
-                  <div className="space-y-1.5 z-10">
-                    <div className="text-xs font-bold uppercase tracking-wider text-blue-600">Operations Control</div>
-                    <h2 className="text-xl font-extrabold text-slate-900">
-                      Welcome back, Admin 👋
-                    </h2>
-                    <p className="text-xs text-slate-500 max-w-[280px] leading-relaxed">
-                      You have <strong className="text-blue-600">{metrics?.fleetSummary?.rented || 2} active car rentals</strong> and {metrics?.fleetSummary?.available || 6} vehicles ready for airport terminal dispatch today.
-                    </p>
-                  </div>
+                {/* 1. Greeting & Weekly Earning Card (White Card with Cash Illustration) */}
+                <div className="md:col-span-6 bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm flex items-center justify-between relative overflow-hidden">
+                  <div className="space-y-3 z-10">
+                    <div className="flex items-center gap-1.5 text-xs text-[#374151] font-semibold">
+                      <span>👋 Hi Mike Willcox,</span>
+                      <span className="text-[#9CA3AF] font-normal">here's what's happening with your fleet today.</span>
+                    </div>
 
-                  <div className="pt-5 flex items-center justify-between z-10">
-                    <button
-                      onClick={() => setActiveNav('fleet')}
-                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 flex items-center gap-2 transition-transform hover:scale-[1.02]"
-                    >
-                      <span>Manage Fleet</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-[#6B7280] font-semibold">Weekly Earning</div>
+                      <div className="text-3xl font-extrabold text-[#111827] tracking-tight">
+                        ${(metrics?.kpis?.totalRevenue || 95000.45).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
 
-                  {/* Decorative Car Floating Icon */}
-                  <div className="absolute right-4 bottom-4 w-28 h-28 opacity-10 pointer-events-none text-blue-900">
-                    <Car className="w-full h-full" />
-                  </div>
-                </div>
-
-                {/* 2. Total Revenue (Orange Gradient Banner) */}
-                <div className="md:col-span-4 rounded-3xl p-6 bg-gradient-to-br from-[#FF7A00] to-[#FF9E00] text-white flex flex-col justify-between shadow-lg shadow-orange-500/20 relative overflow-hidden">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-orange-100">Total Revenue</span>
-                    <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white">
-                      <DollarSign className="w-5 h-5" />
+                    <div className="flex items-center gap-1 text-xs font-bold text-[#10B981]">
+                      <ArrowUpRight className="w-4 h-4" />
+                      <span>+18.50% compare to last week</span>
                     </div>
                   </div>
 
-                  <div className="mt-4">
-                    <div className="text-3xl font-extrabold font-['Plus_Jakarta_Sans'] tracking-tight">
-                      ${(metrics?.kpis?.totalRevenue || 48250).toLocaleString()}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-xs text-orange-100 font-semibold">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      <span>+{metrics?.kpis?.revenueGrowthPct || 15.8}% compared to last month</span>
+                  {/* Cash Money Illustration Graphic on Right */}
+                  <div className="relative w-32 h-28 shrink-0 z-10 flex items-center justify-center">
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                      <DollarSign className="w-12 h-12 stroke-[2.5]" />
                     </div>
                   </div>
                 </div>
 
-                {/* 3. Total Bookings (Deep Navy Banner) */}
-                <div className="md:col-span-3 rounded-3xl p-6 bg-[#0B1B3D] text-white flex flex-col justify-between shadow-lg shadow-slate-900/20 relative overflow-hidden">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-blue-300">Total Bookings</span>
-                    <div className="w-9 h-9 rounded-xl bg-blue-500/20 backdrop-blur-sm flex items-center justify-center text-blue-400">
-                      <Activity className="w-5 h-5" />
-                    </div>
+                {/* 2. Orange Gradient Card: Total Customers / Sales */}
+                <div className="md:col-span-3 bg-gradient-to-br from-[#FF7A00] to-[#FF9E00] text-white rounded-2xl p-6 shadow-md shadow-orange-500/15 flex flex-col justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white">
+                    <ShoppingBag className="w-5 h-5" />
                   </div>
 
-                  <div className="mt-4">
-                    <div className="text-3xl font-extrabold font-['Plus_Jakarta_Sans'] tracking-tight">
-                      {(metrics?.kpis?.totalBookings || 1420).toLocaleString()}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-xs text-emerald-400 font-semibold">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>{metrics?.kpis?.fleetUtilizationRate || 88}% Fleet Utilization</span>
-                    </div>
+                  <div className="mt-4 space-y-1">
+                    <div className="text-3xl font-extrabold tracking-tight">10,000+</div>
+                    <div className="text-xs text-orange-100 font-semibold">Total Fleet Bookings</div>
+                  </div>
+                </div>
+
+                {/* 3. Deep Navy Card: Total Orders / Payment Cards */}
+                <div className="md:col-span-3 bg-[#0B1A3D] text-white rounded-2xl p-6 shadow-md shadow-slate-900/15 flex flex-col justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 backdrop-blur-sm flex items-center justify-center text-blue-400">
+                    <Activity className="w-5 h-5" />
+                  </div>
+
+                  <div className="mt-4 space-y-1">
+                    <div className="text-3xl font-extrabold tracking-tight">800+</div>
+                    <div className="text-xs text-blue-200 font-semibold">Active Dispatch Trips</div>
                   </div>
                 </div>
 
               </div>
 
-              {/* MIDDLE SECTION: Car Availability (Left) + Recent Bookings (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* MIDDLE ROW: Best Seller (Left) + Recent Transactions (Right) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* Left Card: Car Availability */}
-                <div className="lg:col-span-5 rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <h3 className="font-bold text-base text-slate-900">Car Availability</h3>
-                    <button
-                      onClick={() => setActiveNav('fleet')}
-                      className="text-xs text-blue-600 font-bold hover:underline"
-                    >
+                {/* Best Seller Card (Left ~38% width) */}
+                <div className="lg:col-span-5 bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#F3F4F6]">
+                    <h3 className="font-bold text-base text-[#111827]">Best Seller</h3>
+                    <button onClick={() => setActiveNav('fleet')} className="text-xs text-[#FF7A00] font-bold hover:underline">
                       View All
                     </button>
                   </div>
 
-                  <div className="space-y-3">
-                    {vehicles.slice(0, 5).map((car) => (
-                      <div
-                        key={car.id}
-                        className="p-3 rounded-2xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3"
-                      >
+                  <div className="space-y-3.5">
+                    {bestSellerCars.map((car) => (
+                      <div key={car.id} className="flex items-center justify-between gap-3 hover:bg-slate-50/70 p-1.5 rounded-xl transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className="relative w-14 h-11 rounded-xl overflow-hidden bg-white shrink-0 border border-slate-200/80">
+                          <div className="relative w-12 h-10 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                             <Image src={car.image} alt={car.name} fill className="object-cover" />
                           </div>
                           <div>
-                            <h4 className="font-bold text-xs text-slate-900 line-clamp-1">{car.name}</h4>
-                            <div className="text-[11px] text-slate-500">{car.category} • {car.transmission}</div>
+                            <h4 className="font-bold text-xs text-[#111827]">{car.name}</h4>
+                            <div className="text-[11px] text-[#6B7280]">{car.category}</div>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <div className="text-xs font-extrabold text-slate-900">
-                            ${car.dailyRate}<span className="text-[10px] text-slate-400 font-normal">/d</span>
-                          </div>
-                          <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[9px] font-bold ${
-                            car.status === 'AVAILABLE'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : car.status === 'RENTED'
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
-                            {car.status}
-                          </span>
+                          <div className="text-[10px] text-[#9CA3AF] uppercase font-semibold">Sales</div>
+                          <div className="text-xs font-extrabold text-[#111827]">{car.sales}</div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Right Card: Recent Bookings Table */}
-                <div className="lg:col-span-7 rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div>
-                      <h3 className="font-bold text-base text-slate-900">Recent Bookings</h3>
-                      <p className="text-xs text-slate-500">Live dispatch and customer reservations</p>
-                    </div>
-                    <button
-                      onClick={() => setActiveNav('bookings')}
-                      className="text-xs text-blue-600 font-bold hover:underline"
-                    >
+                {/* Recent Transactions Table (Right ~62% width) */}
+                <div className="lg:col-span-7 bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#F3F4F6]">
+                    <h3 className="font-bold text-base text-[#111827]">Recent Transactions</h3>
+                    <button onClick={() => setActiveNav('payments')} className="text-xs text-[#FF7A00] font-bold hover:underline">
                       See All
                     </button>
                   </div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
+                      <thead className="text-[#9CA3AF] uppercase text-[10px] tracking-wider border-b border-[#F3F4F6]">
                         <tr>
-                          <th className="pb-3 font-bold">Booking Code</th>
-                          <th className="pb-3 font-bold">Customer</th>
-                          <th className="pb-3 font-bold">Vehicle</th>
+                          <th className="pb-3 font-bold">#</th>
+                          <th className="pb-3 font-bold">Order Details</th>
+                          <th className="pb-3 font-bold">Payment</th>
                           <th className="pb-3 font-bold">Status</th>
                           <th className="pb-3 font-bold text-right">Amount</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-700">
-                        {bookings.slice(0, 5).map((b) => (
-                          <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="py-3 font-mono font-bold text-slate-900">{b.bookingCode}</td>
+                      <tbody className="divide-y divide-[#F3F4F6] text-[#374151]">
+                        {recentTransactions.map((tx) => (
+                          <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3 font-bold text-[#9CA3AF]">{tx.id}</td>
                             <td className="py-3">
-                              <div className="font-bold text-slate-900">{b.customerName}</div>
-                              <div className="text-[10px] text-slate-400">{b.customerEmail}</div>
+                              <div className="flex items-center gap-2.5">
+                                <div className="relative w-9 h-7 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                                  <Image src={tx.image} alt={tx.name} fill className="object-cover" />
+                                </div>
+                                <div>
+                                  <div className="font-bold text-[#111827]">{tx.name}</div>
+                                  <div className="text-[10px] text-[#9CA3AF]">{tx.date}</div>
+                                </div>
+                              </div>
                             </td>
-                            <td className="py-3 font-semibold text-slate-900">{b.vehicleName}</td>
+                            <td className="py-3 font-medium text-[#4B5563]">{tx.payment}</td>
                             <td className="py-3">
                               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                b.status === 'Active'
-                                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                  : b.status === 'Confirmed'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : b.status === 'Pending'
-                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                  : b.status === 'Completed'
-                                  ? 'bg-slate-100 text-slate-700'
-                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                tx.status === 'Success'
+                                  ? 'bg-[#DEF7EC] text-[#03543F]'
+                                  : tx.status === 'Pending'
+                                  ? 'bg-[#FEF08A] text-[#854D0E]'
+                                  : 'bg-[#FDE8E8] text-[#9B1C1C]'
                               }`}>
-                                {b.status}
+                                {tx.status}
                               </span>
                             </td>
-                            <td className="py-3 text-right font-extrabold text-slate-900">${b.totalAmount}</td>
+                            <td className="py-3 text-right font-extrabold text-[#111827]">{tx.amount}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -700,108 +735,119 @@ export default function AdminDashboardPage() {
 
               </div>
 
-              {/* BOTTOM SECTION: Earning Summary Chart (Left) + Rental Locations Map (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* BOTTOM ROW: Sales Analytics Chart (Left) + Sales by Countries (Right) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* Left Card: Earning Summary (Area Chart) */}
-                <div className="lg:col-span-8 rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div>
-                      <h3 className="font-bold text-base text-slate-900">Earning Summary</h3>
-                      <p className="text-xs text-slate-500">Monthly revenue spline curve & analytics ($ USD)</p>
+                {/* Sales Analytics Chart (Left ~65% width) */}
+                <div className="lg:col-span-8 bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#F3F4F6]">
+                    <h3 className="font-bold text-base text-[#111827]">Sales Analytics</h3>
+                    
+                    <div className="flex items-center gap-1 bg-[#F9FAFB] border border-[#E5E7EB] px-3 py-1 rounded-xl text-xs font-semibold text-[#4B5563]">
+                      <span>{analyticsYear}</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-[#9CA3AF]" />
                     </div>
-                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
-                      2026 YTD
-                    </span>
                   </div>
 
                   <div className="h-64 w-full pt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={metrics?.revenueTrends || []}>
                         <defs>
-                          <linearGradient id="figmaOrangeArea" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="figmaOrangeGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#FF7A00" stopOpacity={0.35} />
                             <stop offset="95%" stopColor="#FF7A00" stopOpacity={0.0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(v) => `$${v / 1000}k`} tickLine={false} axisLine={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                        <XAxis dataKey="month" stroke="#9CA3AF" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#9CA3AF" fontSize={11} tickFormatter={(v) => `$${v / 1000}k`} tickLine={false} axisLine={false} />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: '#ffffff',
-                            borderColor: '#e2e8f0',
-                            borderRadius: '16px',
+                            borderColor: '#E5E7EB',
+                            borderRadius: '12px',
                             fontSize: '12px',
-                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                           }}
-                          formatter={(val: any) => [`$${Number(val).toLocaleString()}`, 'Gross Inflow']}
+                          formatter={(val: any) => [`$${Number(val).toLocaleString()}`, 'Sales Volume']}
                         />
                         <Area
                           type="monotone"
                           dataKey="revenue"
                           stroke="#FF7A00"
-                          strokeWidth={3}
+                          strokeWidth={2.5}
                           fillOpacity={1}
-                          fill="url(#figmaOrangeArea)"
+                          fill="url(#figmaOrangeGradient)"
                         />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                {/* Right Card: Rental Hub Locations Map */}
-                <div className="lg:col-span-4 rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-4">
-                  <div>
-                    <h3 className="font-bold text-base text-slate-900">Rental Hub Locations</h3>
-                    <p className="text-xs text-slate-500">Fleet dispatch density across active airport terminals</p>
+                {/* Sales by Countries Widget (Right ~35% width) */}
+                <div className="lg:col-span-4 bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#F3F4F6]">
+                    <h3 className="font-bold text-base text-[#111827]">Sales by Countries</h3>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-[#6B7280]">
+                      <span>This Week</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-[#9CA3AF]" />
+                    </div>
                   </div>
 
-                  {/* Visual Regional Hub Share */}
-                  <div className="space-y-4 pt-2">
-                    
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                      <div className="flex items-center justify-between text-xs font-bold">
-                        <div className="flex items-center gap-2 text-slate-900">
-                          <MapPin className="w-4 h-4 text-blue-600" />
-                          <span>Hazrat Shahjalal DAC</span>
+                  {/* Stylized Region Share Display */}
+                  <div className="space-y-4 pt-1">
+                    <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#F3F4F6] space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#111827]">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-[#FF7A00]" />
+                          <span>United States Hub</span>
                         </div>
-                        <span className="text-blue-600">58% Share</span>
+                        <span className="text-[#FF7A00]">40%</span>
                       </div>
                       <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-600 rounded-full" style={{ width: '58%' }}></div>
+                        <div className="h-full bg-[#FF7A00] rounded-full" style={{ width: '40%' }}></div>
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                      <div className="flex items-center justify-between text-xs font-bold">
-                        <div className="flex items-center gap-2 text-slate-900">
-                          <MapPin className="w-4 h-4 text-orange-500" />
-                          <span>Sylhet Osmani ZYL</span>
+                    <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#F3F4F6] space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#111827]">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-[#3B82F6]" />
+                          <span>Bangladesh / Regional</span>
                         </div>
-                        <span className="text-orange-500">24% Share</span>
+                        <span className="text-[#3B82F6]">35%</span>
                       </div>
                       <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-orange-500 rounded-full" style={{ width: '24%' }}></div>
+                        <div className="h-full bg-[#3B82F6] rounded-full" style={{ width: '35%' }}></div>
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                      <div className="flex items-center justify-between text-xs font-bold">
-                        <div className="flex items-center gap-2 text-slate-900">
-                          <MapPin className="w-4 h-4 text-emerald-600" />
-                          <span>Chittagong Patenga CGP</span>
+                    <div className="p-4 rounded-xl bg-[#F9FAFB] border border-[#F3F4F6] space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#111827]">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-[#10B981]" />
+                          <span>European & GCC Hubs</span>
                         </div>
-                        <span className="text-emerald-600">18% Share</span>
+                        <span className="text-[#10B981]">25%</span>
                       </div>
                       <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-600 rounded-full" style={{ width: '18%' }}></div>
+                        <div className="h-full bg-[#10B981] rounded-full" style={{ width: '25%' }}></div>
                       </div>
                     </div>
 
+                    <div className="text-xs font-bold text-[#10B981] flex items-center gap-1 pt-1">
+                      <ArrowUpRight className="w-4 h-4" />
+                      <span>+40% increase compare to last week</span>
+                    </div>
                   </div>
                 </div>
 
+              </div>
+
+              {/* FOOTER */}
+              <div className="pt-6 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between text-xs text-[#9CA3AF] gap-2">
+                <div>© 2026 All Rights Reserved</div>
+                <div>Designed &amp; Developed with ❤️ by RentCars Team</div>
               </div>
 
             </div>
@@ -811,11 +857,11 @@ export default function AdminDashboardPage() {
           {/* TAB 2: CAR FLEET MANAGEMENT (CRUD) */}
           {/* ========================================================= */}
           {activeNav === 'fleet' && (
-            <div className="rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#F3F4F6]">
                 <div>
-                  <h3 className="font-bold text-lg text-slate-900">Car Fleet Catalog & Management</h3>
-                  <p className="text-xs text-slate-500">Create new vehicles, edit specifications, rates, and availability status</p>
+                  <h3 className="font-bold text-lg text-[#111827]">Car Fleet Catalog & Management</h3>
+                  <p className="text-xs text-[#6B7280]">Add new vehicles, update rental rates, and manage availability status</p>
                 </div>
                 <button
                   onClick={() => {
@@ -837,46 +883,43 @@ export default function AdminDashboardPage() {
                     });
                     setAddCarModalOpen(true);
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                  className="px-5 py-2.5 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-bold text-xs shadow-md flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Add New Vehicle</span>
+                  <span>Add New Car</span>
                 </button>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
+                  <thead className="text-[#9CA3AF] uppercase text-[10px] tracking-wider border-b border-[#F3F4F6]">
                     <tr>
                       <th className="pb-3 font-bold">Vehicle</th>
-                      <th className="pb-3 font-bold">Category & Specs</th>
-                      <th className="pb-3 font-bold">Hub Station</th>
-                      <th className="pb-3 font-bold">Daily Rate</th>
-                      <th className="pb-3 font-bold">Driver Rating</th>
+                      <th className="pb-3 font-bold">Specs</th>
+                      <th className="pb-3 font-bold">Hub</th>
+                      <th className="pb-3 font-bold">Rate</th>
+                      <th className="pb-3 font-bold">Rating</th>
                       <th className="pb-3 font-bold">Status</th>
-                      <th className="pb-3 font-bold text-right">Actions</th>
+                      <th className="pb-3 font-bold text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                  <tbody className="divide-y divide-[#F3F4F6] text-[#374151]">
                     {vehicles.map((car) => (
-                      <tr key={car.id} className="hover:bg-slate-50/80 transition-colors">
+                      <tr key={car.id} className="hover:bg-slate-50/80">
                         <td className="py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="relative w-14 h-10 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                            <div className="relative w-12 h-9 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                               <Image src={car.image} alt={car.name} fill className="object-cover" />
                             </div>
                             <div>
-                              <div className="font-bold text-slate-900">{car.name}</div>
-                              <div className="text-[10px] text-slate-400 font-mono">{car.licensePlate || 'RC-FL-001'}</div>
+                              <div className="font-bold text-[#111827]">{car.name}</div>
+                              <div className="text-[10px] text-[#9CA3AF] font-mono">{car.licensePlate || 'RC-001'}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="py-3.5">
-                          <div className="font-semibold text-slate-800">{car.category}</div>
-                          <div className="text-[10px] text-slate-500">{car.transmission} • {car.seats} Seats • {car.fuelType}</div>
-                        </td>
-                        <td className="py-3.5 text-slate-600 truncate max-w-[160px]">{car.currentHub}</td>
-                        <td className="py-3.5 font-extrabold text-slate-900">${car.dailyRate}/d</td>
+                        <td className="py-3.5 font-medium">{car.category} • {car.transmission} • {car.seats} Seats</td>
+                        <td className="py-3.5 text-[#6B7280]">{car.currentHub}</td>
+                        <td className="py-3.5 font-extrabold text-[#111827]">${car.dailyRate}/d</td>
                         <td className="py-3.5">
                           <div className="flex items-center gap-1 font-bold text-amber-500">
                             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -885,11 +928,7 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="py-3.5">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            car.status === 'AVAILABLE'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : car.status === 'RENTED'
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            car.status === 'AVAILABLE' ? 'bg-[#DEF7EC] text-[#03543F]' : 'bg-[#E1EFFE] text-[#1E429F]'
                           }`}>
                             {car.status}
                           </span>
@@ -916,15 +955,13 @@ export default function AdminDashboardPage() {
                                 });
                                 setAddCarModalOpen(true);
                               }}
-                              className="p-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors"
-                              title="Edit Vehicle"
+                              className="p-1.5 rounded-lg border border-[#E5E7EB] hover:bg-slate-100 text-[#4B5563]"
                             >
                               <Edit className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDeleteCar(car.id)}
-                              className="p-1.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-600 transition-colors"
-                              title="Delete Vehicle"
+                              className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -942,19 +979,19 @@ export default function AdminDashboardPage() {
           {/* TAB 3: BOOKINGS OPERATIONS */}
           {/* ========================================================= */}
           {activeNav === 'bookings' && (
-            <div className="rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#F3F4F6]">
                 <div>
-                  <h3 className="font-bold text-lg text-slate-900">Bookings & Reservations Lifecycle</h3>
-                  <p className="text-xs text-slate-500">Confirm reservations, trigger vehicle handovers, complete trips, or refund</p>
+                  <h3 className="font-bold text-lg text-[#111827]">Bookings Management</h3>
+                  <p className="text-xs text-[#6B7280]">Confirm reservations, start trips, and manage cancellations</p>
                 </div>
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl text-xs">
+                <div className="flex items-center gap-1 bg-[#F9FAFB] p-1 rounded-xl text-xs">
                   {['All', 'Active', 'Confirmed', 'Pending', 'Completed', 'Cancelled'].map((st) => (
                     <button
                       key={st}
                       onClick={() => setStatusFilter(st)}
-                      className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${
-                        statusFilter === st ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                      className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-colors ${
+                        statusFilter === st ? 'bg-white text-[#FF7A00] shadow-sm' : 'text-[#6B7280]'
                       }`}
                     >
                       {st}
@@ -965,86 +1002,60 @@ export default function AdminDashboardPage() {
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
+                  <thead className="text-[#9CA3AF] uppercase text-[10px] tracking-wider border-b border-[#F3F4F6]">
                     <tr>
-                      <th className="pb-3 font-bold">Booking Code</th>
+                      <th className="pb-3 font-bold">Code</th>
                       <th className="pb-3 font-bold">Customer</th>
-                      <th className="pb-3 font-bold">Vehicle & Plan</th>
-                      <th className="pb-3 font-bold">Dates & Duration</th>
+                      <th className="pb-3 font-bold">Car</th>
+                      <th className="pb-3 font-bold">Duration</th>
                       <th className="pb-3 font-bold">Status</th>
-                      <th className="pb-3 font-bold text-right">Total Amount</th>
+                      <th className="pb-3 font-bold text-right">Amount</th>
                       <th className="pb-3 font-bold text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                  <tbody className="divide-y divide-[#F3F4F6] text-[#374151]">
                     {bookings
                       .filter(b => statusFilter === 'All' || b.status.toLowerCase() === statusFilter.toLowerCase())
                       .map((b) => (
-                        <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3.5 font-mono font-bold text-slate-900">{b.bookingCode}</td>
-                          <td className="py-3.5">
-                            <div className="font-bold text-slate-900">{b.customerName}</div>
-                            <div className="text-[10px] text-slate-400">{b.customerEmail}</div>
+                        <tr key={b.id} className="hover:bg-slate-50/80">
+                          <td className="py-3 font-mono font-bold text-[#111827]">{b.bookingCode}</td>
+                          <td className="py-3">
+                            <div className="font-bold text-[#111827]">{b.customerName}</div>
+                            <div className="text-[10px] text-[#9CA3AF]">{b.customerEmail}</div>
                           </td>
-                          <td className="py-3.5">
-                            <div className="font-semibold text-slate-900">{b.vehicleName}</div>
-                            <div className="text-[10px] text-blue-600 font-medium">{b.protectionPlan}</div>
-                          </td>
-                          <td className="py-3.5 text-slate-600">
-                            <div>{b.totalDays} Days</div>
-                            <div className="text-[10px] text-slate-400">{new Date(b.pickupDate).toLocaleDateString()} ➔ {new Date(b.dropoffDate).toLocaleDateString()}</div>
-                          </td>
-                          <td className="py-3.5">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              b.status === 'Active'
-                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                : b.status === 'Confirmed'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : b.status === 'Pending'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : b.status === 'Completed'
-                                ? 'bg-slate-100 text-slate-700'
-                                : 'bg-rose-50 text-rose-700 border border-rose-200'
-                            }`}>
+                          <td className="py-3 font-semibold text-[#111827]">{b.vehicleName}</td>
+                          <td className="py-3 text-[#6B7280]">{b.totalDays} Days</td>
+                          <td className="py-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E1EFFE] text-[#1E429F]">
                               {b.status}
                             </span>
                           </td>
-                          <td className="py-3.5 text-right font-extrabold text-slate-900">${b.totalAmount}</td>
-                          <td className="py-3.5 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {b.status === 'Pending' && (
-                                <button
-                                  onClick={() => handleBookingStatusChange(b.id, 'Confirmed')}
-                                  className="px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] shadow-sm"
-                                >
-                                  Confirm
-                                </button>
-                              )}
-                              {b.status === 'Confirmed' && (
-                                <button
-                                  onClick={() => handleBookingStatusChange(b.id, 'Active')}
-                                  className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] shadow-sm"
-                                >
-                                  Start Trip
-                                </button>
-                              )}
-                              {b.status === 'Active' && (
-                                <button
-                                  onClick={() => handleBookingStatusChange(b.id, 'Completed')}
-                                  className="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] shadow-sm"
-                                >
-                                  Complete Trip
-                                </button>
-                              )}
-                              {(b.status === 'Pending' || b.status === 'Confirmed') && (
-                                <button
-                                  onClick={() => handleCancelBooking(b.id)}
-                                  className="px-2.5 py-1 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-[10px]"
-                                >
-                                  Cancel & Refund
-                                </button>
-                              )}
-                            </div>
+                          <td className="py-3 text-right font-extrabold text-[#111827]">${b.totalAmount}</td>
+                          <td className="py-3 text-right">
+                            {b.status === 'Pending' && (
+                              <button
+                                onClick={() => handleBookingStatusChange(b.id, 'Confirmed')}
+                                className="px-3 py-1 rounded-lg bg-[#FF7A00] text-white font-bold text-[10px]"
+                              >
+                                Confirm
+                              </button>
+                            )}
+                            {b.status === 'Confirmed' && (
+                              <button
+                                onClick={() => handleBookingStatusChange(b.id, 'Active')}
+                                className="px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px]"
+                              >
+                                Start Trip
+                              </button>
+                            )}
+                            {b.status === 'Active' && (
+                              <button
+                                onClick={() => handleBookingStatusChange(b.id, 'Completed')}
+                                className="px-3 py-1 rounded-lg bg-slate-800 text-white font-bold text-[10px]"
+                              >
+                                Complete
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -1055,72 +1066,44 @@ export default function AdminDashboardPage() {
           )}
 
           {/* ========================================================= */}
-          {/* TAB 4: USER MANAGEMENT */}
+          {/* TAB 4: USERS MANAGEMENT */}
           {/* ========================================================= */}
           {activeNav === 'users' && (
-            <div className="rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900">Registered Driver Accounts & Roles</h3>
-                  <p className="text-xs text-slate-500">Manage user profiles, verify driving credentials, and toggle account access</p>
-                </div>
-              </div>
-
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+              <h3 className="font-bold text-lg text-[#111827]">Customer Management</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
+                  <thead className="text-[#9CA3AF] uppercase text-[10px] tracking-wider border-b border-[#F3F4F6]">
                     <tr>
-                      <th className="pb-3 font-bold">User</th>
-                      <th className="pb-3 font-bold">Phone & City</th>
-                      <th className="pb-3 font-bold">Driving License</th>
+                      <th className="pb-3 font-bold">Customer</th>
+                      <th className="pb-3 font-bold">Phone</th>
+                      <th className="pb-3 font-bold">License</th>
                       <th className="pb-3 font-bold">Role</th>
                       <th className="pb-3 font-bold">Status</th>
-                      <th className="pb-3 font-bold text-right">Actions</th>
+                      <th className="pb-3 font-bold text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                  <tbody className="divide-y divide-[#F3F4F6] text-[#374151]">
                     {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-extrabold flex items-center justify-center text-xs">
-                              {u.name.charAt(0)}
-                            </div>
-                            <div>
-                              <div className="font-bold text-slate-900">{u.name}</div>
-                              <div className="text-[10px] text-slate-400">{u.email}</div>
-                            </div>
-                          </div>
+                      <tr key={u.id} className="hover:bg-slate-50/80">
+                        <td className="py-3">
+                          <div className="font-bold text-[#111827]">{u.name}</div>
+                          <div className="text-[10px] text-[#9CA3AF]">{u.email}</div>
                         </td>
-                        <td className="py-3.5">
-                          <div className="text-slate-900 font-medium">{u.phone}</div>
-                          <div className="text-[10px] text-slate-400">{u.address || 'Dhaka, Bangladesh'}</div>
-                        </td>
-                        <td className="py-3.5 font-mono font-semibold text-slate-800">
-                          {u.drivingLicenseNumber || 'DL-PENDING'}
-                        </td>
-                        <td className="py-3.5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            u.role === 'ADMIN' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-slate-100 text-slate-700'
-                          }`}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="py-3.5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            u.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        <td className="py-3 text-[#4B5563]">{u.phone}</td>
+                        <td className="py-3 font-mono font-semibold">{u.drivingLicenseNumber || 'DL-PENDING'}</td>
+                        <td className="py-3 font-semibold">{u.role}</td>
+                        <td className="py-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            u.status === 'ACTIVE' ? 'bg-[#DEF7EC] text-[#03543F]' : 'bg-[#FDE8E8] text-[#9B1C1C]'
                           }`}>
                             {u.status}
                           </span>
                         </td>
-                        <td className="py-3.5 text-right">
+                        <td className="py-3 text-right">
                           <button
                             onClick={() => handleToggleUserStatus(u.id, u.status)}
-                            className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-colors ${
-                              u.status === 'ACTIVE'
-                                ? 'border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600'
-                                : 'border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-600'
-                            }`}
+                            className="px-3 py-1 rounded-lg border border-[#E5E7EB] font-bold text-[10px]"
                           >
                             {u.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
                           </button>
@@ -1134,48 +1117,36 @@ export default function AdminDashboardPage() {
           )}
 
           {/* ========================================================= */}
-          {/* TAB 5: PAYMENTS & INVOICES */}
+          {/* TAB 5: PAYMENTS */}
           {/* ========================================================= */}
           {activeNav === 'payments' && (
-            <div className="rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900">Payment Transactions & Merchant Logs</h3>
-                  <p className="text-xs text-slate-500">View customer receipts, transaction statuses, and refund records</p>
-                </div>
-              </div>
-
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+              <h3 className="font-bold text-lg text-[#111827]">Payment Transactions</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
+                  <thead className="text-[#9CA3AF] uppercase text-[10px] tracking-wider border-b border-[#F3F4F6]">
                     <tr>
                       <th className="pb-3 font-bold">Transaction</th>
-                      <th className="pb-3 font-bold">Booking Code</th>
+                      <th className="pb-3 font-bold">Booking</th>
                       <th className="pb-3 font-bold">Customer</th>
-                      <th className="pb-3 font-bold">Payment Method</th>
+                      <th className="pb-3 font-bold">Method</th>
                       <th className="pb-3 font-bold">Status</th>
                       <th className="pb-3 font-bold text-right">Amount</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                  <tbody className="divide-y divide-[#F3F4F6] text-[#374151]">
                     {payments.map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 font-mono font-bold text-slate-900">{p.transactionCode}</td>
-                        <td className="py-3.5 font-mono text-slate-600">{p.bookingCode}</td>
-                        <td className="py-3.5 font-semibold text-slate-900">{p.customerName}</td>
-                        <td className="py-3.5">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                            {p.paymentMethod}
-                          </span>
-                        </td>
-                        <td className="py-3.5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            p.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}>
+                      <tr key={p.id} className="hover:bg-slate-50/80">
+                        <td className="py-3 font-mono font-bold text-[#111827]">{p.transactionCode}</td>
+                        <td className="py-3 font-mono text-[#6B7280]">{p.bookingCode}</td>
+                        <td className="py-3 font-semibold text-[#111827]">{p.customerName}</td>
+                        <td className="py-3">{p.paymentMethod}</td>
+                        <td className="py-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#DEF7EC] text-[#03543F]">
                             {p.status}
                           </span>
                         </td>
-                        <td className="py-3.5 text-right font-extrabold text-slate-900">${p.amount}</td>
+                        <td className="py-3 text-right font-extrabold text-[#111827]">${p.amount}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1188,65 +1159,40 @@ export default function AdminDashboardPage() {
           {/* TAB 6: REVIEWS MODERATION */}
           {/* ========================================================= */}
           {activeNav === 'reviews' && (
-            <div className="rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900">Customer Ratings & Moderation</h3>
-                  <p className="text-xs text-slate-500">Approve authentic driver reviews and publish official management replies</p>
-                </div>
-              </div>
-
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+              <h3 className="font-bold text-lg text-[#111827]">Customer Reviews</h3>
               <div className="space-y-4">
                 {reviews.map((rev) => (
-                  <div key={rev.id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div key={rev.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
-                          {rev.userName.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="font-bold text-xs text-slate-900">{rev.userName}</div>
-                          <div className="text-[10px] text-slate-400">Rented Vehicle: {rev.carName}</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="flex text-amber-400">
-                          {[...Array(rev.rating)].map((_, i) => (
-                            <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          ))}
-                        </div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          rev.isApproved ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}>
-                          {rev.isApproved ? 'Approved' : 'Hidden'}
-                        </span>
+                      <div className="font-bold text-xs text-[#111827]">{rev.userName} ({rev.carName})</div>
+                      <div className="flex text-amber-400">
+                        {[...Array(rev.rating)].map((_, i) => (
+                          <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        ))}
                       </div>
                     </div>
-
-                    <p className="text-xs text-slate-700 italic">"{rev.comment}"</p>
-
+                    <p className="text-xs text-slate-600 italic">"{rev.comment}"</p>
                     {rev.adminReply && (
-                      <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-blue-950">
-                        <strong className="text-blue-700">Official Reply:</strong> {rev.adminReply}
+                      <div className="p-2.5 rounded-lg bg-blue-50 text-xs text-blue-900">
+                        <strong>Official Reply:</strong> {rev.adminReply}
                       </div>
                     )}
-
-                    <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200/60">
+                    <div className="pt-2 flex justify-end gap-2">
                       <button
                         onClick={() => {
                           setReplyingReview(rev);
                           setAdminReplyText(rev.adminReply || '');
                         }}
-                        className="px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] transition-colors"
+                        className="px-3 py-1 rounded-lg bg-[#FF7A00] text-white font-bold text-[10px]"
                       >
                         Reply
                       </button>
                       <button
                         onClick={() => handleModerateReview(rev.id, !rev.isApproved)}
-                        className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition-colors"
+                        className="px-3 py-1 rounded-lg border border-slate-300 font-bold text-[10px]"
                       >
-                        {rev.isApproved ? 'Hide Review' : 'Approve Review'}
+                        {rev.isApproved ? 'Hide' : 'Approve'}
                       </button>
                     </div>
                   </div>
@@ -1256,43 +1202,33 @@ export default function AdminDashboardPage() {
           )}
 
           {/* ========================================================= */}
-          {/* TAB 7: AVAILABILITY & MAINTENANCE */}
+          {/* TAB 7: AVAILABILITY & HOLDS */}
           {/* ========================================================= */}
           {activeNav === 'availability' && (
-            <div className="rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900">Vehicle Availability & Scheduled Maintenance</h3>
-                  <p className="text-xs text-slate-500">Lock vehicles for periodic engine inspections, showroom holds, and body repairs</p>
-                </div>
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+              <div className="flex justify-between items-center pb-3 border-b border-[#F3F4F6]">
+                <h3 className="font-bold text-lg text-[#111827]">Availability & Maintenance Holds</h3>
                 <button
                   onClick={() => setScheduleMaintenanceModalOpen(true)}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 flex items-center gap-2"
+                  className="px-4 py-2 rounded-xl bg-[#FF7A00] text-white font-bold text-xs"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Schedule Maintenance Hold</span>
+                  + Schedule Hold
                 </button>
               </div>
 
               <div className="space-y-3">
                 {availabilityBlocks.map((blk) => (
-                  <div key={blk.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900">{blk.carName}</span>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">{blk.type}</span>
-                      </div>
-                      <div className="text-slate-500">
-                        Hold Dates: <strong className="text-slate-700">{new Date(blk.startDate).toLocaleDateString()}</strong> to <strong className="text-slate-700">{new Date(blk.endDate).toLocaleDateString()}</strong>
-                      </div>
+                  <div key={blk.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center text-xs">
+                    <div>
+                      <div className="font-bold text-slate-900">{blk.carName} ({blk.type})</div>
+                      <div className="text-slate-500">{new Date(blk.startDate).toLocaleDateString()} to {new Date(blk.endDate).toLocaleDateString()}</div>
                       <div className="text-slate-400 italic">{blk.notes}</div>
                     </div>
-
                     <button
                       onClick={() => handleDeleteMaintenance(blk.id)}
-                      className="px-3.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 transition-colors"
+                      className="px-3 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 font-bold"
                     >
-                      Release Hold
+                      Release
                     </button>
                   </div>
                 ))}
@@ -1301,30 +1237,23 @@ export default function AdminDashboardPage() {
           )}
 
           {/* ========================================================= */}
-          {/* TAB 8: BUSINESS REPORTS */}
+          {/* TAB 8: REPORTS */}
           {/* ========================================================= */}
           {activeNav === 'reports' && (
-            <div className="space-y-6">
-              <div className="rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-4">
-                <h3 className="font-bold text-lg text-slate-900">Executive Performance & Utilization Reports</h3>
-                <p className="text-xs text-slate-500">Consolidated analytics and vehicle utilization metrics across 2026</p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
-                    <div className="text-xs text-slate-400 uppercase font-semibold">Total Revenue Generated</div>
-                    <div className="text-3xl font-extrabold text-slate-900 mt-2">${metrics?.kpis.totalRevenue.toLocaleString()}</div>
-                    <div className="text-xs text-emerald-600 font-semibold mt-2">✓ Verified Gross Inflow</div>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
-                    <div className="text-xs text-slate-400 uppercase font-semibold">Fleet Utilization Rate</div>
-                    <div className="text-3xl font-extrabold text-blue-600 mt-2">{metrics?.kpis.fleetUtilizationRate}%</div>
-                    <div className="text-xs text-slate-500 font-medium mt-2">High Peak Demand Season</div>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
-                    <div className="text-xs text-slate-400 uppercase font-semibold">Total Bookings Completed</div>
-                    <div className="text-3xl font-extrabold text-slate-900 mt-2">{metrics?.kpis.totalBookings}</div>
-                    <div className="text-xs text-slate-500 font-medium mt-2">Verified Customer Trips</div>
-                  </div>
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-4">
+              <h3 className="font-bold text-lg text-[#111827]">Business Performance Reports</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="text-xs text-slate-400 font-semibold uppercase">Total Revenue</div>
+                  <div className="text-2xl font-extrabold text-slate-900 mt-1">${metrics?.kpis.totalRevenue.toLocaleString()}</div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="text-xs text-slate-400 font-semibold uppercase">Utilization Rate</div>
+                  <div className="text-2xl font-extrabold text-[#FF7A00] mt-1">{metrics?.kpis.fleetUtilizationRate}%</div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="text-xs text-slate-400 font-semibold uppercase">Total Bookings</div>
+                  <div className="text-2xl font-extrabold text-slate-900 mt-1">{metrics?.kpis.totalBookings}</div>
                 </div>
               </div>
             </div>
@@ -1339,10 +1268,10 @@ export default function AdminDashboardPage() {
       {/* ========================================================= */}
       {addCarModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-              <h4 className="font-bold text-sm text-slate-900">
-                {editingCar ? 'Edit Fleet Vehicle' : 'Add New Fleet Vehicle'}
+              <h4 className="font-bold text-sm text-slate-900 font-['Plus_Jakarta_Sans']">
+                {editingCar ? 'Edit Vehicle' : 'Add New Car to Fleet'}
               </h4>
               <button onClick={() => setAddCarModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
                 <X className="w-4 h-4" />
@@ -1351,11 +1280,11 @@ export default function AdminDashboardPage() {
 
             <form onSubmit={handleSaveCar} className="space-y-3 text-xs">
               <div>
-                <label className="font-medium text-slate-700 block mb-1">Car Name *</label>
+                <label className="font-medium text-slate-700 block mb-1">Vehicle Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Jaguar XE L Prestige"
+                  placeholder="e.g. Range Rover Velar"
                   value={carForm.name}
                   onChange={(e) => setCarForm({ ...carForm, name: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
@@ -1383,7 +1312,6 @@ export default function AdminDashboardPage() {
                     <option value="SUV">SUV</option>
                     <option value="Luxury">Luxury</option>
                     <option value="Electric">Electric</option>
-                    <option value="Passenger Van">Passenger Van</option>
                     <option value="Sports">Sports</option>
                   </select>
                 </div>
@@ -1396,7 +1324,7 @@ export default function AdminDashboardPage() {
                     type="number"
                     value={carForm.dailyRate}
                     onChange={(e) => setCarForm({ ...carForm, dailyRate: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
                   />
                 </div>
                 <div>
@@ -1405,7 +1333,7 @@ export default function AdminDashboardPage() {
                     type="number"
                     value={carForm.securityDeposit}
                     onChange={(e) => setCarForm({ ...carForm, securityDeposit: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
                   />
                 </div>
                 <div>
@@ -1414,7 +1342,7 @@ export default function AdminDashboardPage() {
                     type="number"
                     value={carForm.seats}
                     onChange={(e) => setCarForm({ ...carForm, seats: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
                   />
                 </div>
               </div>
@@ -1425,17 +1353,17 @@ export default function AdminDashboardPage() {
                   type="url"
                   value={carForm.image}
                   onChange={(e) => setCarForm({ ...carForm, image: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
                 />
               </div>
 
               <div>
-                <label className="font-medium text-slate-700 block mb-1">Features</label>
+                <label className="font-medium text-slate-700 block mb-1">Features (comma separated)</label>
                 <input
                   type="text"
                   value={carForm.features}
                   onChange={(e) => setCarForm({ ...carForm, features: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
                 />
               </div>
 
@@ -1449,9 +1377,9 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md"
+                  className="px-6 py-2 rounded-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-bold shadow-md"
                 >
-                  Save Vehicle
+                  Save Car
                 </button>
               </div>
             </form>
@@ -1464,7 +1392,7 @@ export default function AdminDashboardPage() {
       {/* ========================================================= */}
       {scheduleMaintenanceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
               <h4 className="font-bold text-sm text-slate-900">Schedule Maintenance Downtime</h4>
               <button onClick={() => setScheduleMaintenanceModalOpen(false)} className="p-1 text-slate-400">
@@ -1478,7 +1406,7 @@ export default function AdminDashboardPage() {
                 <select
                   value={maintForm.carId}
                   onChange={(e) => setMaintForm({ ...maintForm, carId: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900"
                 >
                   <option value="">-- Choose Car --</option>
                   {vehicles.map(v => (
@@ -1528,7 +1456,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-xl bg-blue-600 text-white font-bold shadow-md"
+                  className="px-6 py-2 rounded-xl bg-[#FF7A00] text-white font-bold shadow-md"
                 >
                   Lock Dates
                 </button>
@@ -1543,7 +1471,7 @@ export default function AdminDashboardPage() {
       {/* ========================================================= */}
       {replyingReview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
               <h4 className="font-bold text-sm text-slate-900">Reply to Review from {replyingReview.userName}</h4>
               <button onClick={() => setReplyingReview(null)} className="p-1 text-slate-400">
@@ -1573,7 +1501,7 @@ export default function AdminDashboardPage() {
               </button>
               <button
                 onClick={handleReplyReview}
-                className="px-6 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold shadow-md"
+                className="px-6 py-2 rounded-xl bg-[#FF7A00] text-white text-xs font-bold shadow-md"
               >
                 Post Reply
               </button>
