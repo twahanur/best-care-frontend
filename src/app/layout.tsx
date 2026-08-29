@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { HeaderNavWrapper } from '@/components/common/HeaderNavWrapper';
-import { Footer } from '@/components/common/Footer';
-import { FloatingAiWidget } from '@/components/ai/FloatingAiWidget';
+import { AppShellWrapper } from '@/components/common/AppShellWrapper';
 
 export const metadata: Metadata = {
   title: 'RentCars | Fast & Easy Way to Rent a Car',
@@ -23,12 +21,8 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-screen bg-[#F8F9FB] text-slate-900 flex flex-col antialiased">
-        <HeaderNavWrapper />
-        <main className="flex-grow">{children}</main>
-        <Footer />
-        <FloatingAiWidget />
+        <AppShellWrapper>{children}</AppShellWrapper>
       </body>
     </html>
   );
 }
-
