@@ -262,13 +262,14 @@ export function VehicleCatalog({
 
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div><span className="text-slate-500 text-xs">Engine:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs.engine}</p></div>
-                <div><span className="text-slate-500 text-xs">Horsepower:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs.horsepower} HP</p></div>
-                <div><span className="text-slate-500 text-xs">0-100 km/h:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs.acceleration0to100}</p></div>
-                <div><span className="text-slate-500 text-xs">Top Speed:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs.topSpeed}</p></div>
-                <div><span className="text-slate-500 text-xs">Fuel Efficiency:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.fuelEfficiency}</p></div>
-                <div><span className="text-slate-500 text-xs">Luggage:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.luggageCapacity} Large Bags</p></div>
+                <div><span className="text-slate-500 text-xs">Engine:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs?.engine || '2.0L Turbo'}</p></div>
+                <div><span className="text-slate-500 text-xs">Horsepower:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs?.horsepower || 200} HP</p></div>
+                <div><span className="text-slate-500 text-xs">0-100 km/h:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs?.acceleration0to100 || '7.8s'}</p></div>
+                <div><span className="text-slate-500 text-xs">Top Speed:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs?.topSpeed || '210 km/h'}</p></div>
+                <div><span className="text-slate-500 text-xs">Fuel / Power:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.fuelType || 'Hybrid'}</p></div>
+                <div><span className="text-slate-500 text-xs">Luggage:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.luggageCapacity || 3} Large Bags</p></div>
               </div>
+
 
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Features & Amenities:</h4>

@@ -10,11 +10,13 @@ import { WhyChooseUs } from '@/components/customer/WhyChooseUs';
 import { Testimonials } from '@/components/customer/Testimonials';
 import { FaqSection } from '@/components/customer/FaqSection';
 import { BookingModal } from '@/components/customer/BookingModal';
+import { CarDetailModal } from '@/components/customer/CarDetailModal';
 
 export default function CustomerHomePage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedVehicleForBooking, setSelectedVehicleForBooking] = useState<Vehicle | null>(null);
+  const [selectedVehicleForDetail, setSelectedVehicleForDetail] = useState<Vehicle | null>(null);
 
   useEffect(() => {
     async function loadVehicles() {
@@ -55,7 +57,17 @@ export default function CustomerHomePage() {
       {/* 6. FAQs & Policies */}
       <FaqSection />
 
-      {/* 7. Interactive Booking Flow Modal */}
+      {/* 7. Car Detail & Reviews Inspection Modal */}
+      <CarDetailModal
+        vehicle={selectedVehicleForDetail}
+        onClose={() => setSelectedVehicleForDetail(null)}
+        onBookNow={(v) => {
+          setSelectedVehicleForDetail(null);
+          setSelectedVehicleForBooking(v);
+        }}
+      />
+
+      {/* 8. Interactive Booking Flow Modal */}
       <BookingModal
         vehicle={selectedVehicleForBooking}
         onClose={() => setSelectedVehicleForBooking(null)}
@@ -63,4 +75,3 @@ export default function CustomerHomePage() {
     </div>
   );
 }
-
