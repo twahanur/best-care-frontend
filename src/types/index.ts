@@ -121,6 +121,21 @@ export interface RAGResponse {
   }>;
 }
 
+export interface AgentChatResponse {
+  session_id: string;
+  query: string;
+  answer: string;
+  language: string;
+  intent?: string;
+  sources: RAGSource[];
+  matched_vehicles: Array<{
+    id: string;
+    title: string;
+    score: number;
+  }>;
+  confidence_score: number;
+}
+
 export interface CarRecommendationResponse {
   trip_description: string;
   passengers: number;

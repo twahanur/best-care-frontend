@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Sparkles, X, Send, Bot, User, ShieldCheck, Car, ArrowRight, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, X, Send, Bot, User, ShieldCheck, Car, ArrowRight, RotateCcw, Globe } from 'lucide-react';
 import { api } from '@/services/api';
-import { RAGResponse, CarRecommendationResponse, Vehicle } from '@/types';
+import { AgentChatResponse, CarRecommendationResponse } from '@/types';
 
 interface Message {
   role: 'user' | 'assistant';
   text: string;
-  sources?: Array<{ title: string; category?: string; score?: number; similarity_score?: number }>;
+  language?: string;
+  intent?: string;
+  sources?: Array<{ title: string; category?: string; score?: number; similarity_score?: number; rrf_score?: number }>;
   recommendedCar?: any;
+  confidenceScore?: number;
 }
 
 interface AiConciergeModalProps {
@@ -19,23 +22,35 @@ interface AiConciergeModalProps {
 }
 
 export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeModalProps) {
+  const [sessionId, setSessionId] = useState<string>(() => `sess_${Math.random().toString(36).substring(2, 10)}`);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      text: 'Hello! I am your AI Car Rental Concierge. Tell me about your upcoming trip (destination, passengers, luggage, terrain) or ask any question about our security deposit, insurance, or fleet specs!',
+      text: 'Hello! I am your Agentic AI Car Rental Concierge. I remember our conversation context and support English, বাংলা (Bengali), and Banglish. Tell me about your destination, passengers, luggage, or ask any policy/pricing questions!',
     }
   ]);
 
   const quickPrompts = [
-    'Family of 6 going to Sylhet hills with luggage for 4 days',
-    'What is the security deposit and refund timeline?',
-    'What are the driver eligibility & license requirements?',
-    'Need executive luxury car for VIP airport transfer'
+    { label: '🇧🇩 বাংলা', text: 'সিলেটের চা বাগান ও পাহাড়ের জন্য কোন গাড়ি ভালো হবে?' },
+    { label: '🗣️ Banglish', text: 'amader 6 joner family niye sajek jabo kon gari bhalo hobe?' },
+    { label: '🛡️ Deposit Policy', text: 'What is the security deposit and refund timeline?' },
+    { label: '👑 VIP Transfer', text: 'Need executive luxury car for VIP airport transfer' }
   ];
 
   if (!isOpen) return null;
+
+  const handleResetSession = async () => {
+    const newSessionId = `sess_${Math.random().toString(36).substring(2, 10)}`;
+    setSessionId(newSessionId);
+    setMessages([
+      {
+        role: 'assistant',
+        text: 'Session reset! Conversation memory refreshed. How can I assist you with your rental plans today?',
+      }
+    ]);
+  };
 
   const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || query;
@@ -47,41 +62,27 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
     setLoading(true);
 
     try {
-      // If query is a trip recommendation query
-      const isTripQuery = /going to|trip|family|passengers|mountain|sylhet|sajek|traveling|luggage/i.test(text);
-
-      if (isTripQuery) {
-        const recResult: CarRecommendationResponse = await api.recommendCarForTrip(text, 5);
-        const primary = recResult.primary_recommendation;
-        const answerText = `Here is our AI-recommended vehicle match for your trip:\n\n**${primary.title}** (Match Confidence: ${primary.match_score}%)\n\n${primary.reasoning}\n\n${primary.details}`;
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            text: answerText,
-            sources: recResult.citations,
-            recommendedCar: primary
-          }
-        ]);
-      } else {
-        const ragResult: RAGResponse = await api.askRAG(text);
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            text: ragResult.answer,
-            sources: ragResult.sources,
-            recommendedCar: ragResult.matched_vehicles.length > 0 ? ragResult.matched_vehicles[0] : undefined
-          }
-        ]);
-      }
+      // Call PostgreSQL Agentic Chat with Conversational Memory
+      const chatResult: AgentChatResponse = await api.agenticChat(text, sessionId);
+      
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: chatResult.answer,
+          language: chatResult.language,
+          intent: chatResult.intent,
+          sources: chatResult.sources,
+          recommendedCar: chatResult.matched_vehicles && chatResult.matched_vehicles.length > 0 ? chatResult.matched_vehicles[0] : undefined,
+          confidenceScore: chatResult.confidence_score
+        }
+      ]);
     } catch (err: any) {
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          text: 'I apologize, but I encountered an error querying the RAG knowledge base. Please try asking again or check our FAQ section.',
+          text: 'I apologize, but I encountered an error querying the RAG knowledge base. Please try asking again.',
         }
       ]);
     } finally {
@@ -91,7 +92,7 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl">
-      <div className="glass-panel bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full h-[640px] shadow-2xl flex flex-col overflow-hidden relative glow-indigo">
+      <div className="glass-panel bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full h-[660px] shadow-2xl flex flex-col overflow-hidden relative glow-indigo">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/70">
@@ -102,22 +103,34 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm text-white font-['Plus_Jakarta_Sans']">
-                  AI Rental Concierge & Trip Matchmaker
+                  Agentic AI Rental Concierge
                 </h3>
-                <span className="text-[10px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded">
-                  RAG Grounded
+                <span className="text-[10px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded flex items-center gap-1">
+                  <Globe className="w-3 h-3" />
+                  PostgreSQL RAG & Memory
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">Powered by Gemini 2.0 & Vector Semantic Search</p>
+              <p className="text-[11px] text-slate-400">Conversational Context • Multilingual (Bangla / Banglish / English)</p>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleResetSession}
+              title="Reset Conversation Memory"
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors flex items-center gap-1 text-[11px]"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">New Chat</span>
+            </button>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Messages Stream Area */}
@@ -134,12 +147,26 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
               )}
 
               <div
-                className={`max-w-[82%] p-3.5 rounded-2xl space-y-2.5 ${
+                className={`max-w-[84%] p-3.5 rounded-2xl space-y-2.5 ${
                   msg.role === 'user'
                     ? 'bg-indigo-600 text-white rounded-br-none shadow-md shadow-indigo-600/20'
                     : 'bg-slate-950/80 border border-slate-800/90 text-slate-200 rounded-bl-none'
                 }`}
               >
+                {/* Language / Confidence Header for Assistant */}
+                {msg.role === 'assistant' && (msg.language || msg.confidenceScore) && (
+                  <div className="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/60 text-[10px] text-slate-400">
+                    <span className="capitalize font-semibold text-indigo-300">
+                      Language: {msg.language === 'bangla' ? 'বাংলা (Bengali)' : msg.language === 'banglish' ? 'Banglish' : 'English'}
+                    </span>
+                    {msg.confidenceScore && (
+                      <span className="text-emerald-400 font-mono font-bold">
+                        Grounding: {(msg.confidenceScore * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 <div className="whitespace-pre-line leading-relaxed">{msg.text}</div>
 
                 {/* Grounded Sources Badges */}
@@ -147,15 +174,15 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
                   <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
                       <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                      Verified Grounded Sources:
+                      PostgreSQL Grounded Evidence:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {msg.sources.map((s, sIdx) => (
                         <span
                           key={sIdx}
-                          className="text-[10px] bg-slate-900 border border-slate-800 text-slate-300 px-2 py-0.5 rounded-md"
+                          className="text-[10px] bg-slate-900 border border-slate-800 text-slate-300 px-2 py-0.5 rounded-md flex items-center gap-1"
                         >
-                          {s.title} {s.score ? `(${(s.score * 100).toFixed(0)}%)` : ''}
+                          <span className="text-indigo-400">{s.category}:</span> {s.title}
                         </span>
                       ))}
                     </div>
@@ -175,7 +202,7 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
                       className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/30 transition-all"
                     >
                       <Car className="w-3.5 h-3.5" />
-                      <span>View & Book in Fleet Catalog</span>
+                      <span>View & Book {msg.recommendedCar.title || 'in Fleet'}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -193,7 +220,7 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
           {loading && (
             <div className="flex items-center gap-2 text-indigo-400 text-xs p-2">
               <Sparkles className="w-4 h-4 animate-spin" />
-              <span>Retrieving knowledge base & generating grounded response...</span>
+              <span>Retrieving PostgreSQL pgvector & generating grounded response...</span>
             </div>
           )}
         </div>
@@ -205,10 +232,11 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
             {quickPrompts.map((p, idx) => (
               <button
                 key={idx}
-                onClick={() => handleSendMessage(p)}
-                className="text-[10px] bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-800 hover:border-indigo-500/40 px-2.5 py-1 rounded-lg transition-colors"
+                onClick={() => handleSendMessage(p.text)}
+                className="text-[10px] bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-800 hover:border-indigo-500/40 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
               >
-                {p}
+                <span className="font-semibold text-indigo-300">{p.label}:</span>
+                <span className="truncate max-w-[220px]">{p.text}</span>
               </button>
             ))}
           </div>
@@ -224,7 +252,7 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
         >
           <input
             type="text"
-            placeholder="Ask anything about rental rules or describe your upcoming trip..."
+            placeholder="Ask in English, বাংলা (Bangla), or Banglish (e.g. sajek jabo gari lagbe)..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="flex-grow bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
