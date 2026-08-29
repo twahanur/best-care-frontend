@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Vehicle } from '@/types';
 import { api } from '@/services/api';
 import { HeroSection } from '@/components/customer/HeroSection';
+import { HowItWorks } from '@/components/customer/HowItWorks';
 import { VehicleCatalog } from '@/components/customer/VehicleCatalog';
 import { WhyChooseUs } from '@/components/customer/WhyChooseUs';
 import { Testimonials } from '@/components/customer/Testimonials';
@@ -30,11 +31,14 @@ export default function CustomerHomePage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-[#F8F9FB]">
       {/* 1. Hero with Dynamic Search Bar */}
       <HeroSection onSearch={handleHeroSearch} />
 
-      {/* 2. Interactive Vehicle Fleet Catalog */}
+      {/* 2. 3-Step "How It Works" Flow */}
+      <HowItWorks />
+
+      {/* 3. "Most Popular Car Rental Deals" Catalog */}
       <VehicleCatalog
         vehicles={vehicles}
         selectedCategory={selectedCategory}
@@ -42,16 +46,16 @@ export default function CustomerHomePage() {
         onSelectVehicleForBooking={(v) => setSelectedVehicleForBooking(v)}
       />
 
-      {/* 3. Why Choose Us / Guarantees */}
+      {/* 4. Why Choose Us / Value Proposition */}
       <WhyChooseUs />
 
-      {/* 4. Customer Testimonials */}
+      {/* 5. Customer Testimonials */}
       <Testimonials />
 
-      {/* 5. FAQs & Policies */}
+      {/* 6. FAQs & Policies */}
       <FaqSection />
 
-      {/* 6. Interactive Booking Flow Modal */}
+      {/* 7. Interactive Booking Flow Modal */}
       <BookingModal
         vehicle={selectedVehicleForBooking}
         onClose={() => setSelectedVehicleForBooking(null)}
@@ -59,3 +63,4 @@ export default function CustomerHomePage() {
     </div>
   );
 }
+
