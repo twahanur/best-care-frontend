@@ -16,7 +16,9 @@ import {
   Sparkles,
   Flame,
   CheckCircle2,
-  Compass
+  Compass,
+  ChevronRight,
+  BarChart3
 } from 'lucide-react';
 import { Vehicle, Booking } from '@/types';
 import 'leaflet/dist/leaflet.css';
@@ -43,7 +45,7 @@ export const HUBS_CONFIG: HubInfo[] = [
     region: 'Central North Hub',
     lat: 23.8433,
     lng: 90.4048,
-    zoomLevel: 13,
+    zoomLevel: 12,
     xPct: 52,
     yPct: 46
   },
@@ -55,7 +57,7 @@ export const HUBS_CONFIG: HubInfo[] = [
     region: 'Central Diplomatic Hub',
     lat: 23.7925,
     lng: 90.4162,
-    zoomLevel: 14,
+    zoomLevel: 13,
     xPct: 54,
     yPct: 49
   },
@@ -67,7 +69,7 @@ export const HUBS_CONFIG: HubInfo[] = [
     region: 'South East Port Hub',
     lat: 22.2496,
     lng: 91.8133,
-    zoomLevel: 13,
+    zoomLevel: 12,
     xPct: 75,
     yPct: 74
   },
@@ -79,7 +81,7 @@ export const HUBS_CONFIG: HubInfo[] = [
     region: 'North East Tea Valley Hub',
     lat: 24.8949,
     lng: 91.8687,
-    zoomLevel: 13,
+    zoomLevel: 12,
     xPct: 80,
     yPct: 30
   },
@@ -91,7 +93,7 @@ export const HUBS_CONFIG: HubInfo[] = [
     region: 'South West Industrial Hub',
     lat: 22.8456,
     lng: 89.5403,
-    zoomLevel: 13,
+    zoomLevel: 12,
     xPct: 34,
     yPct: 69
   },
@@ -103,7 +105,7 @@ export const HUBS_CONFIG: HubInfo[] = [
     region: 'Bay of Bengal Tourist Hub',
     lat: 21.4272,
     lng: 92.0058,
-    zoomLevel: 13,
+    zoomLevel: 12,
     xPct: 84,
     yPct: 88
   }
@@ -132,12 +134,13 @@ const TILE_LAYERS = {
 };
 
 const BANGLADESH_CENTER: [number, number] = [23.6850, 90.3563];
-const DEFAULT_ZOOM = 7;
+const COUNTRY_ZOOM = 6.8;
 
 interface SalesHubMapProps {
   vehicles: Vehicle[];
   bookings: Booking[];
   timeframe?: string;
+  onViewHubReport?: (hubName: string) => void;
   onSelectHub?: (hubName: string) => void;
 }
 
@@ -145,18 +148,19 @@ export function SalesHubMap({
   vehicles = [],
   bookings = [],
   timeframe = 'This Week',
+  onViewHubReport,
   onSelectHub
 }: SalesHubMapProps) {
   const [selectedHubId, setSelectedHubId] = useState<string>('dac');
   const [viewMode, setViewMode] = useState<'direct' | 'vector'>('direct');
   const [tileTheme, setTileTheme] = useState<'voyager' | 'dark' | 'osm'>('voyager');
-  const [isCountryView, setIsCountryView] = useState<boolean>(false);
+  const [isCountryView, setIsCountryView] = useState<boolean>(true);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
   const markersRef = useRef<{ [id: string]: any }>({});
   const heatCirclesRef = useRef<{ [id: string]: any[] }>({});
-  const tileLayerRef = useRef<any>(null);
+  const isInitialLoadRef = useRef<boolean>(true);
 
   // Compute dynamic stats per hub using real vehicles & bookings data
   const hubMetrics = useMemo(() => {
@@ -197,16 +201,13 @@ export function SalesHubMap({
 
       // Hot spot intensity color
       let heatColor = '#10B981'; // Green for moderate
-      let heatGlow = 'rgba(16, 185, 129, 0.4)';
-      let badgeBg = 'bg-emerald-500';
+      let heatGlow = 'rgba(16, 185, 129, 0.45)';
       if (utilizationRate >= 80) {
         heatColor = '#EF4444'; // Red-orange intense hot spot
-        heatGlow = 'rgba(239, 68, 68, 0.6)';
-        badgeBg = 'bg-red-500';
+        heatGlow = 'rgba(239, 68, 68, 0.65)';
       } else if (utilizationRate >= 45) {
         heatColor = '#FF7800'; // Vibrant Brand Orange
-        heatGlow = 'rgba(255, 120, 0, 0.55)';
-        badgeBg = 'bg-[#FF7800]';
+        heatGlow = 'rgba(255, 120, 0, 0.6)';
       }
 
       return {
@@ -218,8 +219,7 @@ export function SalesHubMap({
         totalRevenue,
         utilizationRate,
         heatColor,
-        heatGlow,
-        badgeBg
+        heatGlow
       };
     });
   }, [vehicles, bookings]);
@@ -228,6 +228,23 @@ export function SalesHubMap({
   const activeHub = useMemo(() => {
     return hubMetrics.find(h => h.id === selectedHubId) || hubMetrics[0];
   }, [hubMetrics, selectedHubId]);
+
+  // Listen for global custom event dispatched from inside Leaflet popup button
+  useEffect(() => {
+    const handleOpenReportEvent = (e: any) => {
+      const hubName = e.detail;
+      if (onViewHubReport) {
+        onViewHubReport(hubName);
+      } else if (onSelectHub) {
+        onSelectHub(hubName);
+      }
+    };
+
+    window.addEventListener('openHubReport', handleOpenReportEvent);
+    return () => {
+      window.removeEventListener('openHubReport', handleOpenReportEvent);
+    };
+  }, [onViewHubReport, onSelectHub]);
 
   // Initialize Leaflet Map (Client Only)
   useEffect(() => {
@@ -246,24 +263,22 @@ export function SalesHubMap({
         leafletMapRef.current = null;
       }
 
-      // Create new Leaflet instance centered on initial hub
-      const initialHub = activeHub || hubMetrics[0];
+      // Initialize map with wide Bangladesh overview so ALL locations are visible
       const map = L.map(mapContainerRef.current, {
-        center: [initialHub.lat, initialHub.lng],
-        zoom: initialHub.zoomLevel,
+        center: BANGLADESH_CENTER,
+        zoom: COUNTRY_ZOOM,
         zoomControl: false,
         attributionControl: false
       });
 
       // Add Base Tile Layer
       const currentTile = TILE_LAYERS[tileTheme];
-      const tileLayer = L.tileLayer(currentTile.url, {
+      L.tileLayer(currentTile.url, {
         maxZoom: currentTile.maxZoom,
         subdomains: 'abcd',
         attribution: currentTile.attribution
       }).addTo(map);
 
-      tileLayerRef.current = tileLayer;
       leafletMapRef.current = map;
 
       // Clear marker refs
@@ -273,8 +288,8 @@ export function SalesHubMap({
       // Add Hotspot layers & Custom HTML Markers for all hubs
       hubMetrics.forEach((hub) => {
         // 1. Hotspot Pulsing Heat Rings (Outer Radiant Heat Circle)
-        const outerCircleRadius = Math.max(1400, hub.utilizationRate * 35);
-        const innerCircleRadius = Math.max(500, hub.utilizationRate * 12);
+        const outerCircleRadius = Math.max(1600, hub.utilizationRate * 45);
+        const innerCircleRadius = Math.max(600, hub.utilizationRate * 15);
 
         const outerCircle = L.circle([hub.lat, hub.lng], {
           radius: outerCircleRadius,
@@ -282,8 +297,7 @@ export function SalesHubMap({
           fillColor: hub.heatColor,
           fillOpacity: 0.15,
           weight: 1.5,
-          dashArray: '4, 6',
-          className: `hotspot-pulse-ring-${hub.id}`
+          dashArray: '4, 6'
         }).addTo(map);
 
         const innerCircle = L.circle([hub.lat, hub.lng], {
@@ -328,29 +342,34 @@ export function SalesHubMap({
             duration: 1.2,
             easeLinearity: 0.25
           });
-          if (onSelectHub) onSelectHub(hub.name);
         });
 
-        // Interactive Popup Tooltip
+        // Interactive Popup Tooltip with "View Report" button
         const popupContent = `
-          <div class="p-2 text-slate-800 font-sans">
-            <div class="text-xs font-extrabold text-slate-900 flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1.5">
+          <div class="p-2.5 text-slate-800 font-sans min-w-[210px]">
+            <div class="text-xs font-extrabold text-slate-900 flex items-center justify-between gap-2 border-b border-slate-100 pb-1.5 mb-1.5">
               <span>${hub.name}</span>
               <span class="px-1.5 py-0.5 rounded text-[10px] text-white font-bold" style="background: ${hub.heatColor}">
                 ${hub.utilizationRate}% Hotspot
               </span>
             </div>
             <div class="text-[10px] text-slate-500 mb-2">${hub.region}</div>
-            <div class="grid grid-cols-2 gap-1.5 text-[10px] bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+            <div class="grid grid-cols-2 gap-1.5 text-[10px] bg-slate-50 p-2 rounded-xl border border-slate-100 mb-2">
               <div>
                 <span class="text-slate-400 block text-[9px]">Total Fleet:</span>
-                <span class="font-bold text-slate-900">${hub.totalCars} Cars (${hub.availableCars} Available)</span>
+                <span class="font-bold text-slate-900">${hub.totalCars} Cars</span>
               </div>
               <div>
                 <span class="text-slate-400 block text-[9px]">Est. Revenue:</span>
                 <span class="font-extrabold text-emerald-600">$${hub.totalRevenue.toLocaleString()}</span>
               </div>
             </div>
+            <button
+              onclick="window.dispatchEvent(new CustomEvent('openHubReport', { detail: '${hub.name}' }))"
+              class="w-full py-1.5 px-3 bg-[#FF7800] hover:bg-[#e06900] text-white rounded-lg text-[11px] font-extrabold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>📊 View ${hub.shortName.split(' ')[0]} Full Report →</span>
+            </button>
           </div>
         `;
 
@@ -363,10 +382,13 @@ export function SalesHubMap({
         markersRef.current[hub.id] = marker;
       });
 
-      // Fix map size after initial container paint
+      // Fit bounds to show ALL of Bangladesh on initial load
+      const bounds = L.latLngBounds(hubMetrics.map(h => [h.lat, h.lng]));
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 7.2 });
+
       setTimeout(() => {
         map.invalidateSize();
-      }, 200);
+      }, 250);
     });
 
     return () => {
@@ -378,35 +400,36 @@ export function SalesHubMap({
     };
   }, [viewMode, tileTheme]);
 
-  // When selectedHubId changes, trigger smooth zoom-in & highlight in Direct Map mode
-  useEffect(() => {
-    if (!leafletMapRef.current || viewMode !== 'direct') return;
-
-    const targetHub = hubMetrics.find(h => h.id === selectedHubId);
-    if (!targetHub) return;
-
+  // When selectedHubId changes, trigger smooth zoom-in on map without navigating away
+  const handleHubSelectAndZoom = (hubId: string) => {
+    setSelectedHubId(hubId);
     setIsCountryView(false);
 
-    // Smooth Pan & Zoom to Target Hub
-    leafletMapRef.current.flyTo([targetHub.lat, targetHub.lng], targetHub.zoomLevel, {
-      duration: 1.2,
-      easeLinearity: 0.25
-    });
+    if (leafletMapRef.current && viewMode === 'direct') {
+      const targetHub = hubMetrics.find(h => h.id === hubId);
+      if (targetHub) {
+        leafletMapRef.current.flyTo([targetHub.lat, targetHub.lng], targetHub.zoomLevel, {
+          duration: 1.2,
+          easeLinearity: 0.25
+        });
 
-    // Open popup for selected hub
-    const targetMarker = markersRef.current[selectedHubId];
-    if (targetMarker) {
-      setTimeout(() => {
-        targetMarker.openPopup();
-      }, 600);
+        // Open popup for selected hub after zoom completes
+        const targetMarker = markersRef.current[hubId];
+        if (targetMarker) {
+          setTimeout(() => {
+            targetMarker.openPopup();
+          }, 650);
+        }
+      }
     }
-  }, [selectedHubId, hubMetrics, viewMode]);
+  };
 
   // Handler to Zoom out / View All Hubs across Bangladesh
   const handleZoomAllHubs = () => {
-    if (!leafletMapRef.current || viewMode !== 'direct') return;
     setIsCountryView(true);
-    leafletMapRef.current.flyTo(BANGLADESH_CENTER, DEFAULT_ZOOM, {
+    if (!leafletMapRef.current || viewMode !== 'direct') return;
+
+    leafletMapRef.current.flyTo(BANGLADESH_CENTER, COUNTRY_ZOOM, {
       duration: 1.2,
       easeLinearity: 0.25
     });
@@ -419,6 +442,15 @@ export function SalesHubMap({
 
   const handleZoomOut = () => {
     if (leafletMapRef.current) leafletMapRef.current.zoomOut();
+  };
+
+  // Trigger report navigation
+  const handleTriggerReport = (hubName: string) => {
+    if (onViewHubReport) {
+      onViewHubReport(hubName);
+    } else if (onSelectHub) {
+      onSelectHub(hubName);
+    }
   };
 
   return (
@@ -534,9 +566,9 @@ export function SalesHubMap({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-50 border border-orange-200">
             <Flame className="w-3.5 h-3.5 text-[#FF7800] animate-pulse" />
-            <span className="text-xs font-extrabold text-slate-900">Live Fleet Hotspots (% Utilization)</span>
+            <span className="text-xs font-extrabold text-slate-900">Live Fleet Hotspots (% Demand)</span>
           </div>
-          <span className="text-[11px] text-slate-500 hidden sm:inline">• Click any hub below to auto-zoom</span>
+          <span className="text-[11px] text-slate-500 hidden sm:inline">• Click tab below to zoom into hub</span>
         </div>
 
         {/* View Mode Toggle: Direct Map vs Vector Map */}
@@ -638,7 +670,7 @@ export function SalesHubMap({
                   {isCountryView ? 'All 6 Bangladesh Hubs' : activeHub.shortName}
                 </span>
                 <span className="text-[9px] text-slate-500 block">
-                  {isCountryView ? 'Countrywide Fleet Overview' : `${activeHub.utilizationRate}% Hotspot • ${activeHub.totalCars} Fleet Cars`}
+                  {isCountryView ? 'Countrywide Overview (Zoomed out)' : `${activeHub.utilizationRate}% Hotspot • ${activeHub.totalCars} Fleet Cars`}
                 </span>
               </div>
             </div>
@@ -672,19 +704,12 @@ export function SalesHubMap({
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* North Bengal */}
               <path d="M130 50 L190 40 L210 90 L180 130 L120 120 Z" fill="#334155" stroke="#475569" strokeWidth="1.5" />
-              {/* Sylhet Division */}
               <path d="M270 90 L350 110 L340 170 L260 170 L250 120 Z" fill="#1E293B" stroke="#3B82F6" strokeWidth="1.5" />
-              {/* Central Dhaka Metro */}
               <path d="M180 130 L260 120 L270 230 L180 240 L160 180 Z" fill="#0F172A" stroke="#FF7800" strokeWidth="2" strokeDasharray="4 2" />
-              {/* Khulna */}
               <path d="M90 130 L170 140 L180 270 L110 320 L70 240 Z" fill="#1E293B" stroke="#475569" strokeWidth="1.5" />
-              {/* Barishal */}
               <path d="M180 250 L250 250 L230 330 L170 320 Z" fill="#334155" stroke="#475569" strokeWidth="1.5" />
-              {/* Chattogram & Cox's Bazar */}
               <path d="M260 210 L330 200 L350 320 L330 410 L290 330 L260 250 Z" fill="#1E293B" stroke="#10B981" strokeWidth="1.5" />
-              {/* Radar Rings */}
               <circle cx="215" cy="190" r="45" stroke="#FF7800" strokeOpacity="0.25" strokeWidth="1" strokeDasharray="3 3" />
               <circle cx="215" cy="190" r="95" stroke="#FF7800" strokeOpacity="0.15" strokeWidth="1" strokeDasharray="4 4" />
               <circle cx="215" cy="190" r="145" stroke="#FF7800" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="5 5" />
@@ -697,21 +722,15 @@ export function SalesHubMap({
                 <div
                   key={hub.id}
                   style={{ left: `${hub.xPct}%`, top: `${hub.yPct}%` }}
-                  onClick={() => {
-                    setSelectedHubId(hub.id);
-                    if (onSelectHub) onSelectHub(hub.name);
-                  }}
+                  onClick={() => handleHubSelectAndZoom(hub.id)}
                   className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-20"
                 >
-                  {/* Pulsing Hotspot Aura */}
                   <div
                     style={{ background: hub.heatColor }}
                     className={`absolute -inset-3 rounded-full opacity-40 animate-ping duration-1000 ${
                       isSelected ? 'scale-125 opacity-70' : 'opacity-20 group-hover:opacity-50'
                     }`}
                   />
-
-                  {/* Hotspot Badge */}
                   <div
                     className={`relative flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold transition-all duration-300 shadow-xl border ${
                       isSelected
@@ -740,7 +759,7 @@ export function SalesHubMap({
         )}
       </div>
 
-      {/* Dynamic Hub Horizontal Tab Scroller (Clicking any tab auto zooms the map into that hub!) */}
+      {/* Dynamic Hub Horizontal Tab Scroller (Clicking any tab ONLY zooms into that hub on the map) */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-[11px]">
           <span className="font-bold text-slate-700">Select Hub Location to Zoom In:</span>
@@ -749,7 +768,7 @@ export function SalesHubMap({
             className="text-[10px] font-bold text-[#FF7800] hover:underline flex items-center gap-1 cursor-pointer"
           >
             <Compass className="w-3 h-3" />
-            <span>Reset View (All Hubs)</span>
+            <span>Reset View (All Bangladesh Hubs)</span>
           </button>
         </div>
 
@@ -759,10 +778,7 @@ export function SalesHubMap({
             return (
               <button
                 key={hub.id}
-                onClick={() => {
-                  setSelectedHubId(hub.id);
-                  if (onSelectHub) onSelectHub(hub.name);
-                }}
+                onClick={() => handleHubSelectAndZoom(hub.id)}
                 className={`p-2.5 rounded-xl border transition-all text-left shrink-0 min-w-[140px] cursor-pointer relative overflow-hidden group ${
                   isSelected
                     ? 'bg-orange-50/90 border-[#FF7800] shadow-sm ring-2 ring-[#FF7800]/40'
@@ -799,7 +815,7 @@ export function SalesHubMap({
         </div>
       </div>
 
-      {/* Selected Hub Dynamic KPI Banner */}
+      {/* Selected Hub Dynamic KPI Banner with direct "View Hub Report" button */}
       <div className="p-3.5 bg-gradient-to-r from-slate-50 via-white to-orange-50/40 border border-slate-200 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-orange-100 text-[#FF7800] shadow-inner">
@@ -829,11 +845,21 @@ export function SalesHubMap({
 
           <div
             style={{ color: activeHub.heatColor }}
-            className="flex items-center gap-1 text-xs font-extrabold"
+            className="flex items-center gap-1 text-xs font-extrabold mr-1"
           >
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>{activeHub.utilizationRate}% Active Demand</span>
+            <span>{activeHub.utilizationRate}% Active</span>
           </div>
+
+          {/* Dedicated "View Hub Report" button that switches to the reports section */}
+          <button
+            onClick={() => handleTriggerReport(activeHub.name)}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#FF7800] to-amber-500 hover:from-[#e06900] hover:to-amber-600 text-white text-xs font-extrabold shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>View Full Report</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </div>

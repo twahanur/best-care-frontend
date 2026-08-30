@@ -1691,7 +1691,7 @@ export default function AdminDashboardPage() {
                     vehicles={vehicles}
                     bookings={bookings}
                     timeframe="This Week"
-                    onSelectHub={() => setActiveMenu('products')}
+                    onViewHubReport={(hubName) => setActiveMenu('reports')}
                   />
                 </div>
               </div>
