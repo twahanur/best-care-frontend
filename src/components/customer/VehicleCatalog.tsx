@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Vehicle } from '@/types';
-import { Users, Fuel, Settings2, Star, Heart, ArrowRight, Check, Info, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Heart, Info, ArrowRight } from 'lucide-react';
 
 interface VehicleCatalogProps {
   vehicles: Vehicle[];
@@ -18,7 +18,6 @@ export function VehicleCatalog({
   selectedCategory,
   onCategoryChange,
 }: VehicleCatalogProps) {
-  const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedVehicleForSpecs, setSelectedVehicleForSpecs] = useState<Vehicle | null>(null);
 
@@ -27,229 +26,165 @@ export function VehicleCatalog({
     setFavorites(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Filter vehicles
-  const filteredVehicles = vehicles.filter((v) => {
-    if (selectedCategory !== 'All' && v.category.toLowerCase() !== selectedCategory.toLowerCase()) {
-      return false;
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const match =
-        v.name.toLowerCase().includes(q) ||
-        v.brand.toLowerCase().includes(q) ||
-        v.category.toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    return true;
-  });
-
   const categories = [
-    { id: 'All', label: 'All Deals' },
-    { id: 'Sedan', label: 'Sedan' },
-    { id: 'SUV', label: 'SUV' },
-    { id: 'Electric', label: 'Electric' },
-    { id: 'Luxury', label: 'Luxury' },
+    { id: 'Popular', label: 'Popular' },
+    { id: 'Large Car', label: 'Large Car' },
+    { id: 'Small Car', label: 'Small Car' },
+    { id: 'Exclusive Car', label: 'Exclusive Car' },
+  ];
+
+  // Map categories or show list
+  const activeTabId = selectedCategory === 'All' ? 'Popular' : selectedCategory;
+
+  const displayVehicles = vehicles.length > 0 ? vehicles.slice(0, 8) : [
+    {
+      id: '1',
+      name: 'All New Rush',
+      brand: 'Toyota',
+      category: 'SUV',
+      dailyRate: 72,
+      image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80',
+      seats: 5,
+      transmission: 'Automatic',
+      fuelType: 'Petrol',
+      available: true,
+      features: ['GPS', 'Air Conditioning', 'Bluetooth'],
+      rating: 4.8,
+      reviewsCount: 120
+    }
   ];
 
   return (
-    <section id="fleet" className="py-16 md:py-24 bg-[#F8F9FB] border-t border-slate-200/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="fleet" className="py-20 md:py-28 bg-white border-t border-[#F3F4F6]">
+      <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-            Popular Deals
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-['Plus_Jakarta_Sans']">
-            Most Popular Car Rental Deals
+        {/* Section Header (Exact Figma Copy) */}
+        <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
+          <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-extrabold text-[#111827] font-['Plus_Jakarta_Sans'] tracking-tight">
+            Most popular car rental deals
           </h2>
-          <p className="text-sm sm:text-base text-slate-500">
-            Explore our top-rated vehicles selected for superior comfort, performance, and safety.
+          <p className="text-sm sm:text-base text-[#6B7280]">
+            A high-performing web-based car rental system for any rent-a-car company and website
           </p>
         </div>
 
-        {/* Category Tabs & Search Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-10 pb-4 border-b border-slate-200">
-          
-          {/* Category Tabs */}
-          <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-            {categories.map((cat) => (
+        {/* Category Tabs matching Figma Wireframe */}
+        <div className="flex items-center justify-center gap-8 md:gap-16 border-b border-[#E5E7EB] mb-12 overflow-x-auto pb-4">
+          {categories.map((cat) => {
+            const isActive = activeTabId.toLowerCase() === cat.id.toLowerCase();
+            return (
               <button
                 key={cat.id}
-                onClick={() => onCategoryChange(cat.id)}
-                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
-                  selectedCategory.toLowerCase() === cat.id.toLowerCase()
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                    : 'bg-white text-slate-600 hover:text-blue-600 hover:bg-slate-50 border border-slate-200/80'
+                onClick={() => onCategoryChange(cat.id === 'Popular' ? 'All' : cat.id)}
+                className={`text-sm md:text-base font-semibold pb-3 relative transition-colors whitespace-nowrap ${
+                  isActive
+                    ? 'text-[#111827] font-bold'
+                    : 'text-[#6B7280] hover:text-[#111827]'
                 }`}
               >
                 {cat.label}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#111827] rounded-full"></span>
+                )}
               </button>
-            ))}
-          </div>
-
-          {/* Search Box */}
-          <div className="w-full sm:w-72">
-            <input
-              type="text"
-              placeholder="Search car make or model..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500 placeholder-slate-400 shadow-sm"
-            />
-          </div>
-
+            );
+          })}
         </div>
 
-        {/* 8-Card Grid (4 cols x 2 rows) */}
-        {filteredVehicles.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
-            <p className="text-slate-500 text-sm font-medium">No vehicles found matching the selected filter.</p>
-            <button
-              onClick={() => {
-                onCategoryChange('All');
-                setSearchQuery('');
-              }}
-              className="mt-3 px-4 py-2 rounded-xl bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100"
-            >
-              Reset Filters
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredVehicles.map((vehicle) => {
-              const isFav = !!favorites[vehicle.id];
-              return (
-                <div
-                  key={vehicle.id}
-                  className="figma-card figma-card-hover rounded-2xl p-4 flex flex-col justify-between border border-slate-200/70 bg-white relative group"
-                >
-                  
-                  {/* Top Header: Title & Wishlist Button */}
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                          {vehicle.category}
-                        </span>
-                        <h3 className="font-bold text-base text-slate-900 font-['Plus_Jakarta_Sans'] mt-1.5 line-clamp-1 group-hover:text-blue-600 transition-colors">
-                          {vehicle.name}
-                        </h3>
-                      </div>
+        {/* 8-Card Grid (4 cols x 2 rows) matching Figma layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {(displayVehicles.length >= 8 ? displayVehicles : Array.from({ length: 8 }).map((_, i) => ({
+            ...displayVehicles[i % displayVehicles.length],
+            id: `v-${i}`,
+            name: i % 2 === 0 ? 'All New Rush' : displayVehicles[i % displayVehicles.length]?.name || 'All New Rush'
+          }))).map((vehicle, idx) => {
+            const isFav = !!favorites[vehicle.id];
+            return (
+              <div
+                key={`${vehicle.id}-${idx}`}
+                className="bg-[#D1D5DB]/40 rounded-2xl p-5 flex flex-col justify-between border border-[#E5E7EB] relative group hover:shadow-md transition-all duration-200"
+              >
+                {/* Top Row: Title & Heart Icon */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h3 className="font-bold text-sm sm:text-base text-[#111827] font-['Plus_Jakarta_Sans'] truncate">
+                    {vehicle.name || 'All New Rush'}
+                  </h3>
 
-                      <button
-                        type="button"
-                        onClick={(e) => toggleFavorite(vehicle.id, e)}
-                        className={`p-2 rounded-xl border transition-colors ${
-                          isFav
-                            ? 'bg-rose-50 border-rose-200 text-rose-500'
-                            : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-rose-500'
-                        }`}
-                        title="Add to Wishlist"
-                      >
-                        <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-500' : ''}`} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-amber-500 text-xs font-semibold mt-1">
-                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      <span className="text-slate-800">{vehicle.rating}</span>
-                      <span className="text-slate-400 text-[11px]">({vehicle.reviewsCount} reviews)</span>
-                    </div>
-
-                    {/* Image Showcase */}
-                    <div className="relative h-40 w-full my-3 rounded-xl bg-slate-50 overflow-hidden flex items-center justify-center border border-slate-100">
-                      <Image
-                        src={vehicle.image}
-                        alt={vehicle.name}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-
-                    {/* Specifications Row */}
-                    <div className="grid grid-cols-3 gap-2 py-2.5 border-y border-slate-100 text-[11px] text-slate-600">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                        <span>{vehicle.seats} Seats</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Settings2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                        <span className="truncate">{vehicle.transmission}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Fuel className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                        <span className="truncate">{vehicle.fuelType}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Bottom: Price & Rent Action */}
-                  <div className="pt-3 flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-400">Price</div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-lg font-extrabold text-slate-900">${vehicle.dailyRate}</span>
-                        <span className="text-xs text-slate-500">/ day</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedVehicleForSpecs(vehicle)}
-                        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
-                        title="View Specifications"
-                      >
-                        <Info className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => onSelectVehicleForBooking(vehicle)}
-                        disabled={!vehicle.available}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all ${
-                          vehicle.available
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 hover:scale-[1.02]'
-                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                        }`}
-                      >
-                        <span>Rent Now</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
+                  <button
+                    type="button"
+                    onClick={(e) => toggleFavorite(vehicle.id, e)}
+                    className="p-1 rounded-lg text-[#6B7280] hover:text-rose-500 transition-colors shrink-0"
+                    title="Add to Wishlist"
+                  >
+                    <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* Show All Vehicles CTA Button */}
-        <div className="mt-12 text-center">
+                {/* Car Showcase Image (Centered in subtle card) */}
+                <div className="relative h-36 w-full my-3 rounded-xl overflow-hidden flex items-center justify-center">
+                  <Image
+                    src={vehicle.image || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80'}
+                    alt={vehicle.name}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-lg"
+                  />
+                </div>
+
+                {/* Bottom Row: Price & Rent Now Button */}
+                <div className="pt-2 flex items-center justify-between">
+                  <div className="text-xs text-[#111827] font-bold">
+                    ${vehicle.dailyRate || 72}.00 <span className="text-[#6B7280] font-normal">/ day</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedVehicleForSpecs(vehicle as any)}
+                      className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-[#4B5563] text-xs transition-colors"
+                      title="View Details"
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onSelectVehicleForBooking(vehicle as any)}
+                      className="px-3.5 py-1.5 rounded-lg bg-white border border-[#D1D5DB] hover:bg-[#111827] hover:text-white hover:border-[#111827] text-[#111827] text-xs font-bold transition-all shadow-sm"
+                    >
+                      Rent Now
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Show More Car Button & Counter Footer */}
+        <div className="mt-12 relative flex items-center justify-center">
           <button
-            onClick={() => {
-              onCategoryChange('All');
-              setSearchQuery('');
-            }}
-            className="px-6 py-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs shadow-sm hover:border-slate-300 transition-all inline-flex items-center gap-2"
+            onClick={() => onCategoryChange('All')}
+            className="px-6 py-2.5 rounded-xl bg-white hover:bg-[#111827] hover:text-white border border-[#E5E7EB] text-[#111827] font-bold text-xs shadow-sm transition-all"
           >
-            <span>Show all vehicles ({vehicles.length})</span>
-            <ArrowRight className="w-4 h-4 text-blue-600" />
+            Show more car
           </button>
+
+          <div className="absolute right-0 text-xs font-medium text-[#6B7280] hidden sm:block">
+            120 Car
+          </div>
         </div>
 
       </div>
 
-      {/* Specifications Detail Modal */}
+      {/* Specifications Modal */}
       {selectedVehicleForSpecs && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white p-6 rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl relative">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <div>
-                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">{selectedVehicleForSpecs.category}</span>
+                <span className="text-xs font-bold text-[#0284C7] uppercase tracking-wider">{selectedVehicleForSpecs.category}</span>
                 <h3 className="text-xl font-bold text-slate-900">{selectedVehicleForSpecs.name}</h3>
               </div>
               <button
@@ -262,31 +197,16 @@ export function VehicleCatalog({
 
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div><span className="text-slate-500 text-xs">Engine:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs?.engine || '2.0L Turbo'}</p></div>
-                <div><span className="text-slate-500 text-xs">Horsepower:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs?.horsepower || 200} HP</p></div>
-                <div><span className="text-slate-500 text-xs">0-100 km/h:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs?.acceleration0to100 || '7.8s'}</p></div>
-                <div><span className="text-slate-500 text-xs">Top Speed:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.specs?.topSpeed || '210 km/h'}</p></div>
-                <div><span className="text-slate-500 text-xs">Fuel / Power:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.fuelType || 'Hybrid'}</p></div>
-                <div><span className="text-slate-500 text-xs">Luggage:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.luggageCapacity || 3} Large Bags</p></div>
-              </div>
-
-
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Features & Amenities:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedVehicleForSpecs.features.map((feat, idx) => (
-                    <span key={idx} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-lg font-medium">
-                      <Check className="w-3 h-3 text-blue-600" />
-                      {feat}
-                    </span>
-                  ))}
-                </div>
+                <div><span className="text-slate-500 text-xs">Category:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.category}</p></div>
+                <div><span className="text-slate-500 text-xs">Seats:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.seats} Seats</p></div>
+                <div><span className="text-slate-500 text-xs">Transmission:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.transmission}</p></div>
+                <div><span className="text-slate-500 text-xs">Fuel:</span> <p className="font-bold text-slate-900">{selectedVehicleForSpecs.fuelType}</p></div>
               </div>
 
               <div className="pt-4 flex items-center justify-between border-t border-slate-100">
                 <div>
                   <span className="text-xs text-slate-500">Rate</span>
-                  <p className="text-xl font-extrabold text-slate-900">${selectedVehicleForSpecs.dailyRate} <span className="text-xs text-slate-500 font-normal">/ day</span></p>
+                  <p className="text-xl font-extrabold text-slate-900">${selectedVehicleForSpecs.dailyRate}.00 <span className="text-xs text-slate-500 font-normal">/ day</span></p>
                 </div>
 
                 <button
@@ -295,8 +215,7 @@ export function VehicleCatalog({
                     setSelectedVehicleForSpecs(null);
                     onSelectVehicleForBooking(v);
                   }}
-                  disabled={!selectedVehicleForSpecs.available}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20"
+                  className="px-5 py-2.5 rounded-xl bg-[#111827] hover:bg-black text-white font-bold text-xs shadow-md"
                 >
                   Proceed to Booking
                 </button>
@@ -309,4 +228,3 @@ export function VehicleCatalog({
     </section>
   );
 }
-

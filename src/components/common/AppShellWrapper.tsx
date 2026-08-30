@@ -8,9 +8,12 @@ import { FloatingAiWidget } from '../ai/FloatingAiWidget';
 
 export function AppShellWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname.startsWith('/admin');
+  const isDedicatedDashboard =
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/customer') ||
+    pathname.startsWith('/driver');
 
-  if (isAdmin) {
+  if (isDedicatedDashboard) {
     return <>{children}</>;
   }
 

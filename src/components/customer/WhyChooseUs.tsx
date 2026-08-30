@@ -1,88 +1,71 @@
 import React from 'react';
 import Image from 'next/image';
-import { ShieldCheck, Headphones, DollarSign, ArrowRight, Smartphone, Gift, Award, CheckCircle2 } from 'lucide-react';
+import { Headphones, Tag, MapPin, ArrowRight } from 'lucide-react';
 
 export function WhyChooseUs() {
-  const benefits = [
-    {
-      icon: DollarSign,
-      title: 'Best price guarantee',
-      description: 'Found a lower price elsewhere? We will match it and offer an additional discount with transparent, no-surge pricing.',
-    },
+  const features = [
     {
       icon: Headphones,
-      title: '24/7 Road Assistance',
-      description: 'Round-the-clock dedicated roadside support, nationwide emergency response, and rapid replacement vehicle dispatch.',
+      title: 'Customer Support',
+      description: 'Extremely responsive customer support provided by the team at best car rental UK.',
     },
     {
-      icon: ShieldCheck,
-      title: 'Free Cancellation',
-      description: 'Flexible travel plans with zero penalty for cancellations or modifications made up to 24 hours prior to scheduled pickup.',
+      icon: Tag,
+      title: 'Best Price Guaranteed',
+      description: 'Extremely best prices for all category people offered at the best car rental UK.',
+    },
+    {
+      icon: MapPin,
+      title: 'Many Location',
+      description: 'Extremely the best location and available near the big cities. Just visit best car rental UK.',
     },
   ];
 
   return (
-    <section id="why-us" className="py-16 md:py-24 bg-white border-t border-slate-200/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="why-us" className="py-20 md:py-28 bg-[#F8F9FB] border-t border-[#E5E7EB]">
+      <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Section Header */}
+        {/* Section Header (Exact Figma Copy) */}
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-            Why Choose Us
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-['Plus_Jakarta_Sans']">
-            Unmatched Quality & Complete Peace of Mind
+          <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-extrabold text-[#111827] font-['Plus_Jakarta_Sans'] tracking-tight">
+            Why choose us
           </h2>
-          <p className="text-sm sm:text-base text-slate-500">
-            We deliver the ultimate seamless car rental experience crafted for business executives, travelers, and families.
+          <p className="text-sm sm:text-base text-[#6B7280]">
+            A high-performing web-based car rental system for any rent-a-car company and website
           </p>
         </div>
 
-        {/* Featured Lifestyle Image + 3 Benefit Items */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center mb-16">
+        {/* Main Grid: Left Visual Card + Right 3 Feature Items */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-16">
           
-          {/* Left Column: Large Showcase Image */}
+          {/* Left Column: Showcase Rounded Card matching Figma placeholder */}
           <div className="lg:col-span-6">
-            <div className="relative w-full h-[360px] sm:h-[440px] rounded-3xl overflow-hidden shadow-xl border border-slate-100 bg-slate-100">
+            <div className="relative w-full h-[360px] sm:h-[440px] rounded-[32px] bg-[#9CA3AF]/40 overflow-hidden shadow-lg border border-slate-300/40 p-6 flex items-center justify-center group">
               <Image
-                src="https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=85"
-                alt="Why Choose Rentcars"
+                src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=85"
+                alt="Why Choose Best Car"
                 fill
-                className="object-cover hover:scale-105 transition-transform duration-700"
+                className="object-cover group-hover:scale-105 transition-transform duration-700 rounded-2xl p-4"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
-              
-              <div className="absolute bottom-6 left-6 right-6 text-white">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-400 bg-slate-900/80 px-2.5 py-1 rounded-md border border-white/10">
-                  Premium Experience
-                </span>
-                <h4 className="text-xl font-bold font-['Plus_Jakarta_Sans'] mt-2">
-                  Over 10,000+ Journeys Completed
-                </h4>
-                <p className="text-xs text-slate-200 mt-1">
-                  100% verified fleet with comprehensive inspection before every dispatch.
-                </p>
-              </div>
             </div>
           </div>
 
-          {/* Right Column: 3 Benefit Cards */}
-          <div className="lg:col-span-6 space-y-6">
-            {benefits.map((item, idx) => {
+          {/* Right Column: 3 Feature Items matching Figma Wireframe */}
+          <div className="lg:col-span-6 space-y-8">
+            {features.map((item, idx) => {
               const Icon = item.icon;
               return (
-                <div
-                  key={idx}
-                  className="figma-card p-5 sm:p-6 rounded-2xl border border-slate-200/80 bg-white flex items-start gap-4 hover:border-blue-300 transition-colors"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100 shadow-sm">
-                    <Icon className="w-6 h-6" />
+                <div key={idx} className="flex items-start gap-5 group">
+                  {/* Rounded Square Icon Box */}
+                  <div className="w-14 h-14 rounded-2xl bg-[#9CA3AF]/30 text-[#4B5563] flex items-center justify-center shrink-0 group-hover:bg-[#111827] group-hover:text-white transition-colors duration-200">
+                    <Icon className="w-6 h-6 stroke-[2]" />
                   </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 font-['Plus_Jakarta_Sans']">
+
+                  <div className="space-y-1 pt-1">
+                    <h3 className="text-lg font-extrabold text-[#111827] font-['Plus_Jakarta_Sans']">
                       {item.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mt-1">
+                    <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed max-w-md">
                       {item.description}
                     </p>
                   </div>
@@ -93,53 +76,68 @@ export function WhyChooseUs() {
 
         </div>
 
-        {/* 2 Bottom Promo Banner Cards (Matching Figma Bottom Layout) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* 2 Bottom Banner Cards (Promotional Highlights matching Figma Wireframe) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          {/* Card 1: Mobile App Promo */}
-          <div className="figma-card p-7 rounded-3xl border border-slate-200 bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex flex-col justify-between space-y-4 shadow-lg">
-            <div className="space-y-2">
-              <span className="text-[11px] uppercase font-bold tracking-widest text-blue-200 bg-white/10 px-2.5 py-1 rounded-md">
-                Fast & Mobile
+          {/* Promo Card 1 */}
+          <div className="relative h-64 rounded-[28px] bg-[#D1D5DB]/50 overflow-hidden border border-[#E5E7EB] p-8 flex items-center justify-between group shadow-sm">
+            <div className="space-y-3 z-10 max-w-xs">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#4B5563] bg-white/80 px-2.5 py-1 rounded-md">
+                Special Deals
               </span>
-              <h3 className="text-2xl font-extrabold font-['Plus_Jakarta_Sans']">
-                Download Our Mobile App
-              </h3>
-              <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-sm">
-                Unlock 1-tap car unlock, live GPS tracking of delivery, and instant digital check-in directly from your smartphone.
+              <h4 className="text-2xl font-extrabold text-[#111827] font-['Plus_Jakarta_Sans']">
+                Experience Luxury Rentals
+              </h4>
+              <p className="text-xs text-[#6B7280]">
+                Explore executive sedans and SUVs with zero excess protection.
               </p>
+              <a
+                href="#fleet"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#111827] hover:underline pt-1"
+              >
+                <span>Discover fleet</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
             </div>
 
-            <div className="flex items-center gap-3 pt-2">
-              <button className="px-4 py-2.5 rounded-xl bg-white text-slate-900 font-bold text-xs hover:bg-blue-50 transition-colors flex items-center gap-2 shadow">
-                <Smartphone className="w-4 h-4 text-blue-600" />
-                <span>App Store / Play Store</span>
-              </button>
+            <div className="relative w-48 h-36 shrink-0 opacity-85 group-hover:scale-105 transition-transform duration-500">
+              <Image
+                src="https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=400&q=80"
+                alt="Luxury Car Offer"
+                fill
+                className="object-contain"
+              />
             </div>
           </div>
 
-          {/* Card 2: Special Deal Promo */}
-          <div className="figma-card p-7 rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 text-white flex flex-col justify-between space-y-4 shadow-lg">
-            <div className="space-y-2">
-              <span className="text-[11px] uppercase font-bold tracking-widest text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-md border border-amber-400/20">
-                Special Weekend Offer
+          {/* Promo Card 2 */}
+          <div className="relative h-64 rounded-[28px] bg-[#D1D5DB]/50 overflow-hidden border border-[#E5E7EB] p-8 flex items-center justify-between group shadow-sm">
+            <div className="space-y-3 z-10 max-w-xs">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#4B5563] bg-white/80 px-2.5 py-1 rounded-md">
+                Fast Delivery
               </span>
-              <h3 className="text-2xl font-extrabold font-['Plus_Jakarta_Sans']">
-                Get 20% Off Weekend Trips
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-sm">
-                Use promo code <strong className="text-amber-400">WEEKEND20</strong> on any SUV or Luxury rental booked for 3+ days.
+              <h4 className="text-2xl font-extrabold text-[#111827] font-['Plus_Jakarta_Sans']">
+                Instant Airport Dispatch
+              </h4>
+              <p className="text-xs text-[#6B7280]">
+                Delivered straight to airport arrivals in 15 minutes or less.
               </p>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
               <a
                 href="#fleet"
-                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition-colors flex items-center gap-1.5 shadow"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#111827] hover:underline pt-1"
               >
-                <span>Claim Offer</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>Book now</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </a>
+            </div>
+
+            <div className="relative w-48 h-36 shrink-0 opacity-85 group-hover:scale-105 transition-transform duration-500">
+              <Image
+                src="https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&w=400&q=80"
+                alt="Airport Dispatch"
+                fill
+                className="object-contain"
+              />
             </div>
           </div>
 
@@ -149,4 +147,3 @@ export function WhyChooseUs() {
     </section>
   );
 }
-

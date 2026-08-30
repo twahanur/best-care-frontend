@@ -11,6 +11,7 @@ import {
   Review,
   AvailabilityBlock,
   PricingRule,
+  DiscountCoupon
 } from '../types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
@@ -23,6 +24,17 @@ const client = axios.create({
   },
 });
 
+// Attach Authorization header if token exists
+client.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 export const api = {
   // ==========================
   // 1. AUTHENTICATION & USERS
@@ -30,6 +42,15 @@ export const api = {
   async register(data: { name: string; email: string; password: string; phone: string; drivingLicenseNumber?: string; address?: string }) {
     try {
       const res = await client.post('/auth/register', data);
+      if (typeof window !== 'undefined' && res.data) {
+        if (res.data.accessToken) {
+          localStorage.setItem('token', res.data.accessToken);
+        }
+        if (res.data.user) {
+          localStorage.setItem('best_car_user', JSON.stringify(res.data.user));
+        }
+        window.dispatchEvent(new Event('best_car_auth_change'));
+      }
       return res.data;
     } catch (err: any) {
       throw new Error(err.response?.data?.message || 'Registration failed');
@@ -39,29 +60,55 @@ export const api = {
   async login(data: { email: string; password?: string }) {
     try {
       const res = await client.post('/auth/login', data);
+      if (typeof window !== 'undefined' && res.data) {
+        if (res.data.accessToken) {
+          localStorage.setItem('token', res.data.accessToken);
+        }
+        if (res.data.user) {
+          localStorage.setItem('best_car_user', JSON.stringify(res.data.user));
+        }
+        window.dispatchEvent(new Event('best_car_auth_change'));
+      }
       return res.data;
     } catch (err: any) {
       throw new Error(err.response?.data?.message || 'Login failed');
     }
   },
 
-  async getProfile(userId?: string): Promise<User> {
+  async logout() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('best_car_user');
+      localStorage.removeItem('token');
+      window.dispatchEvent(new Event('best_car_auth_change'));
+    }
+    return { success: true };
+  },
+
+  async getProfile(userId?: string): Promise<User | null> {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (!token && !userId) {
+        localStorage.removeItem('best_car_user');
+        return null;
+      }
+    }
     try {
       const res = await client.get('/auth/profile', { params: { userId } });
+      if (res.data && typeof window !== 'undefined') {
+        localStorage.setItem('best_car_user', JSON.stringify(res.data));
+      }
       return res.data;
-    } catch {
-      return {
-        id: 'usr_cust_1',
-        name: 'Shahriar Khan',
-        email: 'shahriar@example.com',
-        role: 'CUSTOMER',
-        phone: '+8801700112233',
-        drivingLicenseNumber: 'DL-DH-482910',
-        address: 'Banani DOHS, Dhaka',
-        status: 'ACTIVE',
-        createdAt: '2026-02-10T00:00:00Z',
-        updatedAt: '2026-02-10T00:00:00Z',
-      };
+    } catch (err: any) {
+      if (typeof window !== 'undefined') {
+        // If unauthorized or token invalid, wipe tampered storage
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem('best_car_user');
+          localStorage.removeItem('token');
+          window.dispatchEvent(new Event('best_car_auth_change'));
+          return null;
+        }
+      }
+      return null;
     }
   },
 
@@ -101,37 +148,41 @@ export const api = {
           updatedAt: '2026-02-10T00:00:00Z',
         },
         {
-          id: 'usr_cust_2',
-          name: 'Nusrat Jahan',
-          email: 'nusrat@example.com',
-          role: 'CUSTOMER',
-          phone: '+8801711987654',
-          drivingLicenseNumber: 'DL-DH-738291',
-          address: 'Dhanmondi Road 27, Dhaka',
+          id: 'usr_driver_1',
+          name: 'Rafiqul Islam',
+          email: 'rafiqul.driver@rentcars.com',
+          role: 'CAR_DRIVER',
+          phone: '+8801712334455',
+          drivingLicenseNumber: 'DL-DH-882910',
+          address: 'Mirpur 10, Dhaka',
           status: 'ACTIVE',
-          createdAt: '2026-02-15T00:00:00Z',
-          updatedAt: '2026-02-15T00:00:00Z',
+          createdAt: '2026-01-20T00:00:00Z',
+          updatedAt: '2026-01-20T00:00:00Z',
         }
       ];
     }
   },
 
-  async updateUserStatus(userId: string, status: 'ACTIVE' | 'SUSPENDED', role?: string): Promise<User> {
-    const res = await client.put('/auth/users/status', { userId, status, role });
+  async updateUserStatus(userId: string, status: 'ACTIVE' | 'SUSPENDED', role?: any): Promise<User> {
+    const res = await client.put<User>(`/auth/users/${userId}/status`, { status, role });
     return res.data;
   },
 
   // ==========================
-  // 2. CARS & FLEET MANAGEMENT
+  // 2. VEHICLE FLEET MANAGEMENT
   // ==========================
-  async getVehicles(params?: { category?: string; search?: string; transmission?: string; fuelType?: string; maxPrice?: number; hub?: string; status?: string }): Promise<Vehicle[]> {
+  async getVehicles(params?: {
+    category?: string;
+    search?: string;
+    transmission?: string;
+    fuelType?: string;
+    maxPrice?: number;
+    hub?: string;
+    status?: string;
+  }): Promise<Vehicle[]> {
     try {
       const res = await client.get<Vehicle[]>('/cars', { params });
-      return res.data.map(c => ({
-        ...c,
-        image: c.images && c.images.length > 0 ? c.images[0] : (c.image || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80'),
-        available: c.status === 'AVAILABLE'
-      }));
+      return res.data;
     } catch {
       return [];
     }
@@ -139,12 +190,7 @@ export const api = {
 
   async getVehicleById(id: string): Promise<Vehicle> {
     const res = await client.get<Vehicle>(`/cars/${id}`);
-    const c = res.data;
-    return {
-      ...c,
-      image: c.images && c.images.length > 0 ? c.images[0] : (c.image || ''),
-      available: c.status === 'AVAILABLE'
-    };
+    return res.data;
   },
 
   async createVehicle(carData: Partial<Vehicle>): Promise<Vehicle> {
@@ -162,12 +208,90 @@ export const api = {
     return res.data;
   },
 
+  async getCategoriesStats(): Promise<any[]> {
+    try {
+      const res = await client.get('/cars/categories/stats');
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async getBrandsStats(): Promise<any[]> {
+    try {
+      const res = await client.get('/cars/brands/stats');
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async getHubs(): Promise<any[]> {
+    try {
+      const res = await client.get('/cars/hubs/all');
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async transferCarHub(carId: string, targetHub: string): Promise<Vehicle> {
+    const res = await client.post<Vehicle>(`/cars/${carId}/transfer-hub`, { targetHub });
+    return res.data;
+  },
+
+  async getMaintenanceFleet(): Promise<any[]> {
+    try {
+      const res = await client.get('/cars/maintenance/list');
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async getDriverCars(driverId: string): Promise<Vehicle[]> {
+    try {
+      const res = await client.get<Vehicle[]>(`/cars/owner/${driverId}`);
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
   // ==========================
   // 3. BOOKINGS MANAGEMENT
   // ==========================
   async getBookings(status?: string, search?: string, userId?: string): Promise<Booking[]> {
     try {
       const res = await client.get<Booking[]>('/bookings', { params: { status, search, userId } });
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async getDriverTrips(driverId: string): Promise<Booking[]> {
+    try {
+      const res = await client.get<Booking[]>(`/bookings/driver/${driverId}`);
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async driverRespondTrip(bookingId: string, driverId: string, action: 'ACCEPT' | 'REJECT'): Promise<Booking> {
+    const res = await client.post<Booking>(`/bookings/${bookingId}/driver-response`, { driverId, action });
+    return res.data;
+  },
+
+  async updateDriverTripStatus(bookingId: string, status: string): Promise<Booking> {
+    const res = await client.post<Booking>(`/bookings/${bookingId}/driver-status`, { status });
+    return res.data;
+  },
+
+  async getCustomerTrips(userId: string): Promise<Booking[]> {
+    try {
+      const res = await client.get<Booking[]>(`/bookings/customer/${userId}`);
       return res.data;
     } catch {
       return [];
@@ -188,8 +312,18 @@ export const api = {
     }
   },
 
+  async createPosBooking(bookingData: any): Promise<Booking> {
+    const res = await client.post<Booking>('/bookings/pos', bookingData);
+    return res.data;
+  },
+
   async updateBookingStatus(id: string, status: string): Promise<Booking> {
     const res = await client.put<Booking>(`/bookings/${id}/status`, { status });
+    return res.data;
+  },
+
+  async processRentalReturn(id: string, inspection: any): Promise<Booking> {
+    const res = await client.post<Booking>(`/bookings/${id}/return-inspection`, inspection);
     return res.data;
   },
 
@@ -252,8 +386,17 @@ export const api = {
   },
 
   // ==========================
-  // 6. AVAILABILITY & MAINTENANCE
+  // 6. AVAILABILITY & MAINTENANCE BLOCKS
   // ==========================
+  async checkAvailability(carId: string, startDate: string, endDate: string) {
+    try {
+      const res = await client.get('/availability/check', { params: { carId, startDate, endDate } });
+      return res.data;
+    } catch {
+      return { available: true, collisionCount: 0, blocks: [] };
+    }
+  },
+
   async getAvailabilityBlocks(carId?: string): Promise<AvailabilityBlock[]> {
     try {
       const res = await client.get<AvailabilityBlock[]>('/availability', { params: { carId } });
@@ -263,7 +406,7 @@ export const api = {
     }
   },
 
-  async createAvailabilityBlock(blockData: { carId: string; carName?: string; startDate: string; endDate: string; type: string; notes?: string }): Promise<AvailabilityBlock> {
+  async createAvailabilityBlock(blockData: { carId: string; startDate: string; endDate: string; type: string; notes?: string }): Promise<AvailabilityBlock> {
     const res = await client.post<AvailabilityBlock>('/availability', blockData);
     return res.data;
   },
@@ -273,17 +416,8 @@ export const api = {
     return res.data;
   },
 
-  async checkAvailability(carId: string, startDate: string, endDate: string): Promise<{ available: boolean; conflictingBlock?: AvailabilityBlock }> {
-    try {
-      const res = await client.get('/availability/check', { params: { carId, startDate, endDate } });
-      return res.data;
-    } catch {
-      return { available: true };
-    }
-  },
-
   // ==========================
-  // 7. PRICING & QUOTES
+  // 7. PRICING & COUPONS
   // ==========================
   async getPricingRules(): Promise<PricingRule[]> {
     try {
@@ -304,9 +438,37 @@ export const api = {
     return res.data;
   },
 
-  async getQuote(carId: string, totalDays: number, plan?: string) {
+  async getCoupons(): Promise<DiscountCoupon[]> {
     try {
-      const res = await client.get('/pricing/quote', { params: { carId, totalDays, plan } });
+      const res = await client.get<DiscountCoupon[]>('/pricing/coupons');
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async createCoupon(couponData: Partial<DiscountCoupon>): Promise<DiscountCoupon> {
+    const res = await client.post<DiscountCoupon>('/pricing/coupons', couponData);
+    return res.data;
+  },
+
+  async deleteCoupon(id: string): Promise<{ success: boolean }> {
+    const res = await client.delete(`/pricing/coupons/${id}`);
+    return res.data;
+  },
+
+  async getProtectionPlans(): Promise<any[]> {
+    try {
+      const res = await client.get('/pricing/protection-plans');
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async getQuote(carId: string, totalDays: number, plan?: string, withDriver?: boolean) {
+    try {
+      const res = await client.get('/pricing/quote', { params: { carId, totalDays, plan, withDriver } });
       return res.data;
     } catch {
       return { baseTotal: 100 * totalDays, protectionFee: 18 * totalDays, grandTotal: 118 * totalDays };
@@ -331,7 +493,7 @@ export const api = {
           totalBookingsGrowthPct: 22.1,
           fleetUtilizationRate: 88,
         },
-        fleetSummary: { total: 8, available: 6, rented: 2, maintenance: 0 },
+        fleetSummary: { total: 8, available: 6, rented: 2, maintenance: 1 },
         revenueTrends: [
           { month: 'Jan', revenue: 18500, expenses: 7200 },
           { month: 'Feb', revenue: 24200, expenses: 8400 },
@@ -362,25 +524,6 @@ export const api = {
     }
   },
 
-  // ==========================
-  // 9. AI CONCIERGE & AUTOMATION
-  // ==========================
-  async agenticChat(query: string, sessionId?: string): Promise<AgentChatResponse> {
-    try {
-      const res = await client.post<AgentChatResponse>('/ai/chat', { query, sessionId });
-      return res.data;
-    } catch {
-      return {
-        answer: 'Our standard security deposit is $200 (released in 24-48 hours after return). All rentals for 3 days or longer include unlimited mileage and 24/7 roadside assistance.',
-        language: 'english',
-        intent: 'policy_inquiry',
-        confidence_score: 0.94,
-        sources: [{ title: 'Security Deposit & Refund Timelines', category: 'Rental Policy', score: 0.92 }],
-        matched_vehicles: []
-      };
-    }
-  },
-
   async getKnowledgeDocs(): Promise<{ total_documents: number; documents: any[] }> {
     try {
       const res = await client.get('/ai/knowledge-docs');
@@ -390,8 +533,23 @@ export const api = {
     }
   },
 
-  async recommendCarForTrip(tripDescription: string, passengers: number = 4, budgetPerDay?: number, terrain?: string): Promise<CarRecommendationResponse> {
+  async agenticChat(query: string, sessionId?: string): Promise<AgentChatResponse> {
+    try {
+      const res = await client.post<AgentChatResponse>('/ai/chat', { query, sessionId });
+      return res.data;
+    } catch {
+      return {
+        answer: 'Best Care 24/7 Concierge: Unlimited mileage is included on all bookings over 3 days.',
+        language: 'english',
+        intent: 'policy_inquiry',
+        confidence_score: 0.95,
+        sources: [],
+        matched_vehicles: []
+      };
+    }
+  },
 
+  async recommendCarForTrip(tripDescription: string, passengers: number = 4, budgetPerDay?: number, terrain?: string): Promise<CarRecommendationResponse> {
     try {
       const res = await client.post<CarRecommendationResponse>('/ai/recommend-car', { tripDescription, passengers, budgetPerDay, terrain });
       return res.data;
@@ -406,22 +564,8 @@ export const api = {
           reasoning: '7 spacious seats and full 4WD off-road capabilities.',
           details: 'Daily Rate: $145/day. 7 Passengers, 4 Suitcases. Dual AC.'
         },
-        citations: [{ title: 'Toyota Land Cruiser Prado TX (4x4 Luxury SUV)', score: 0.94 }]
+        citations: []
       };
     }
-  },
-
-  async getAutomationLogs(): Promise<AutomationLog[]> {
-    try {
-      const res = await client.get<AutomationLog[]>('/automation/logs');
-      return res.data;
-    } catch {
-      return [];
-    }
-  },
-
-  async testAutomationPipeline(): Promise<any> {
-    const res = await client.post('/automation/test-workflow');
-    return res.data;
   }
 };

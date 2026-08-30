@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { User, Lock, Mail, Phone, FileText, MapPin, CheckCircle2, X, LogOut, Shield } from 'lucide-react';
 import { api } from '@/services/api';
 import { User as UserType } from '@/types';
@@ -13,6 +14,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, currentUser, onUserChange }: AuthModalProps) {
+  const router = useRouter();
   const [tab, setTab] = useState<'login' | 'register' | 'profile'>(currentUser ? 'profile' : 'login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,6 +35,16 @@ export function AuthModal({ isOpen, onClose, currentUser, onUserChange }: AuthMo
         email: loginEmail || email,
         password: loginPassword || password,
       });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'best_car_user',
+          JSON.stringify({
+            role: res.user.role,
+            name: res.user.name,
+            email: res.user.email,
+          })
+        );
+      }
       onUserChange(res.user);
       onClose();
     } catch (err: any) {
@@ -64,9 +76,11 @@ export function AuthModal({ isOpen, onClose, currentUser, onUserChange }: AuthMo
     }
   };
 
-  const handleQuickLogin = (role: 'customer' | 'admin') => {
+  const handleQuickLogin = (role: 'customer' | 'admin' | 'driver') => {
     if (role === 'admin') {
       handleLogin('admin@rentcars.com', 'admin123');
+    } else if (role === 'driver') {
+      handleLogin('rafiqul.driver@rentcars.com', 'driver123');
     } else {
       handleLogin('shahriar@example.com', 'user123');
     }
@@ -142,9 +156,12 @@ export function AuthModal({ isOpen, onClose, currentUser, onUserChange }: AuthMo
 
               <div className="pt-2 flex items-center gap-3">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    await api.logout();
                     onUserChange(null);
                     setTab('login');
+                    onClose();
+                    router.replace('/login');
                   }}
                   className="w-full py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 flex items-center justify-center gap-1.5 transition-colors"
                 >
@@ -217,24 +234,34 @@ export function AuthModal({ isOpen, onClose, currentUser, onUserChange }: AuthMo
                   </button>
 
                   {/* 1-Click Test Demo Credentials */}
-                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
                     <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider text-center">
-                      Quick Demo Switcher
+                      ⚡ 1-Click Fast Login for UI Testing
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <button
                         type="button"
                         onClick={() => handleQuickLogin('customer')}
-                        className="py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] font-bold text-slate-700"
+                        className="py-2 px-1 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-[10px] font-bold text-blue-700 transition text-center"
                       >
-                        Demo Customer
+                        <div className="text-sm">👤</div>
+                        <span>Customer</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickLogin('driver')}
+                        className="py-2 px-1 rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-100 text-[10px] font-bold text-amber-800 transition text-center"
+                      >
+                        <div className="text-sm">🚗</div>
+                        <span>Driver</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleQuickLogin('admin')}
-                        className="py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-[11px] font-bold text-blue-700"
+                        className="py-2 px-1 rounded-xl border border-purple-200 bg-purple-50/70 hover:bg-purple-100 text-[10px] font-bold text-purple-700 transition text-center"
                       >
-                        Demo Admin
+                        <div className="text-sm">👑</div>
+                        <span>Admin</span>
                       </button>
                     </div>
                   </div>

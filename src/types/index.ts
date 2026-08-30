@@ -1,4 +1,4 @@
-export type UserRole = 'CUSTOMER' | 'ADMIN' | 'FLEET_MANAGER';
+export type UserRole = 'CUSTOMER' | 'ADMIN' | 'CAR_DRIVER' | 'FLEET_MANAGER';
 export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION';
 
 export interface User {
@@ -9,6 +9,7 @@ export interface User {
   phone: string;
   avatar?: string;
   drivingLicenseNumber?: string;
+  drivingLicenseNo?: string;
   drivingLicenseImage?: string;
   address?: string;
   status: UserStatus;
@@ -64,21 +65,70 @@ export type ProtectionPlan = 'Basic CDW' | 'Comprehensive Plus' | 'VIP Full Shie
 export type BookingStatus = 'Pending' | 'Confirmed' | 'Active' | 'Completed' | 'Cancelled';
 export type PaymentStatus = 'Paid' | 'Pending' | 'Refunded' | 'Failed';
 
+export type RentalServiceType =
+  | 'SELF_DRIVE'
+  | 'CHAUFFEUR_DRIVEN'
+  | 'AIRPORT_TRANSFER'
+  | 'INTERCITY_TOUR'
+  | 'HOURLY_CHARTER'
+  | 'WEDDING_VIP_EVENT';
+
+export type RentalAddon =
+  | 'CHILD_BABY_SEAT'
+  | 'PORTABLE_WIFI_HOTSPOT'
+  | 'DASHCAM_RECORDER'
+  | 'ROOF_LUGGAGE_BOX'
+  | 'ADDITIONAL_DRIVER_PERMIT'
+  | 'PET_PROTECTION_COVER';
+
+export type MaintenanceType =
+  | 'ROUTINE_OIL_FILTER_SERVICE'
+  | 'BRAKE_PAD_REPLACEMENT'
+  | 'TIRE_ALIGNMENT_ROTATION'
+  | 'BATTERY_HEALTH_CHECK'
+  | 'CERAMIC_DETAILING'
+  | 'BODY_PAINT_REPAIR'
+  | 'AC_DEEP_CLEAN';
+
+export type DriverTripStatus =
+  | 'NOT_ASSIGNED'
+  | 'ASSIGNED_PENDING'
+  | 'ACCEPTED'
+  | 'EN_ROUTE_TO_PICKUP'
+  | 'ARRIVED_AT_HUB'
+  | 'TRIP_IN_PROGRESS'
+  | 'DROPOFF_COMPLETED';
+
+export interface BookingAddonItem {
+  id?: string;
+  addon: RentalAddon;
+  dailyPrice: number;
+  totalPrice: number;
+}
+
 export interface Booking {
   id: string;
   bookingCode: string;
   userId?: string;
+  driverId?: string;
+  serviceType?: RentalServiceType;
+  driverTripStatus?: DriverTripStatus;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   carId?: string;
   vehicleId?: string;
   vehicleName: string;
+  carName?: string;
   vehicleImage?: string;
   pickupDate: string;
   dropoffDate: string;
+  startDate?: string;
+  endDate?: string;
   pickupLocation: string;
   dropoffLocation: string;
+  pickupHub?: string;
+  returnHub?: string;
   totalDays: number;
   dailyRate: number;
   baseAmount?: number;
@@ -87,6 +137,8 @@ export interface Booking {
   securityDeposit?: number;
   discountAmount?: number;
   totalAmount: number;
+  withDriver?: boolean;
+  addons?: BookingAddonItem[];
   status: BookingStatus;
   paymentStatus: PaymentStatus;
   cancellationReason?: string;
@@ -100,31 +152,30 @@ export interface Booking {
     suggestedAction: string;
   };
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
-
-export type PaymentMethod = 'Credit Card' | 'Debit Card' | 'bKash' | 'Nagad' | 'Cash on Delivery';
 
 export interface Payment {
   id: string;
   transactionCode: string;
+  transactionId?: string;
   bookingId: string;
   bookingCode: string;
   userId: string;
   customerName: string;
   amount: number;
   currency: string;
-  paymentMethod: PaymentMethod;
-  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  paymentMethod: 'Credit Card' | 'Debit Card' | 'bKash' | 'Nagad' | 'Cash on Delivery' | 'Paypal' | 'Apple Pay' | 'Stripe' | 'PayU' | 'Paytm' | string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | string;
+  paymentStatus?: string;
   paidAt?: string;
-  refundedAt?: string;
   receiptUrl?: string;
   createdAt: string;
 }
 
 export interface Review {
   id: string;
-  bookingId: string;
+  bookingId?: string;
   userId: string;
   userName: string;
   userAvatar?: string;
@@ -137,29 +188,43 @@ export interface Review {
   createdAt: string;
 }
 
-export type AvailabilityBlockType = 'BOOKING' | 'MAINTENANCE' | 'ADMIN_HOLD' | 'INSPECTION';
-
 export interface AvailabilityBlock {
   id: string;
   carId: string;
   carName: string;
-  bookingId?: string;
   startDate: string;
   endDate: string;
-  type: AvailabilityBlockType;
-  notes?: string;
+  type: 'Maintenance' | 'Booking' | 'Reserved' | 'ADMIN_HOLD';
+  notes: string;
   createdAt: string;
 }
 
 export interface PricingRule {
   id: string;
   name: string;
-  category?: string;
+  code?: string;
+  category?: CarCategory;
   multiplier: number;
+  driverDailyRate?: number;
   startDate?: string;
   endDate?: string;
   isActive: boolean;
   createdAt: string;
+}
+
+export interface DiscountCoupon {
+  id: string;
+  code: string;
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  discountValue: number;
+  minBookingAmount?: number;
+  maxDiscountAmount?: number;
+  startDate?: string;
+  endDate?: string;
+  usageLimit?: number;
+  usedCount?: number;
+  isActive: boolean;
+  createdAt?: string;
 }
 
 export interface DashboardMetrics {
@@ -171,9 +236,6 @@ export interface DashboardMetrics {
     totalBookings: number;
     totalBookingsGrowthPct: number;
     fleetUtilizationRate: number;
-    fleetUtilizationChangePct?: number;
-    conversionRate?: number;
-    avgRentalDurationDays?: number;
   };
   fleetSummary: {
     total: number;
@@ -181,14 +243,17 @@ export interface DashboardMetrics {
     rented: number;
     maintenance: number;
   };
-  bookingStatusCounts?: {
-    active: number;
-    confirmed: number;
-    pending: number;
-    completed: number;
-    total: number;
+  paymentSummary?: {
+    totalCollected: number;
+    totalRefunded: number;
+    pendingPayouts: number;
+    byMethod: {
+      creditCard: number;
+      bKash: number;
+      cash: number;
+    };
   };
-  revenueTrends: Array<{ month: string; revenue: number; expenses: number; bookings?: number }>;
+  revenueTrends: Array<{ month: string; revenue: number; expenses?: number; bookings?: number }>;
   categoryDistribution: Array<{ category: string; count: number; sharePct: number; color: string }>;
   recentBookings: Booking[];
 }
@@ -216,7 +281,6 @@ export interface AgentChatResponse {
   sources: Array<{ title: string; category?: string; score?: number; similarity_score?: number; rrf_score?: number }>;
   matched_vehicles: Vehicle[];
 }
-
 
 export interface CarRecommendationResponse {
   trip_description: string;
