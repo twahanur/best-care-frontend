@@ -334,8 +334,8 @@ export function ComprehensiveReports({
 
       {/* Main Report Navigation Tabs & Filters */}
       <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Subtab Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Subtab Buttons with horizontal touch scrolling */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar touch-scroll pb-1">
           {[
             { id: 'car', label: '🚗 Car-Basis Report', desc: 'Per vehicle earnings & ROI' },
             { id: 'day', label: '📅 Day-Wise Report', desc: 'Daily timeline trends' },
@@ -346,7 +346,7 @@ export function ComprehensiveReports({
             <button
               key={tab.id}
               onClick={() => setReportTab(tab.id as any)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
                 reportTab === tab.id
                   ? 'bg-[#FF7800] text-white shadow-md shadow-orange-500/20'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -358,19 +358,19 @@ export function ComprehensiveReports({
         </div>
 
         {/* Time Range Filter Selector */}
-        <div className="flex items-center gap-2 self-end md:self-auto">
+        <div className="flex items-center gap-2 self-start md:self-auto overflow-x-auto no-scrollbar shrink-0">
           <span className="text-xs font-semibold text-slate-500 hidden sm:inline">Timeframe:</span>
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
             {[
-              { id: '7d', label: 'Last 7D' },
-              { id: '30d', label: 'Last 30D' },
-              { id: '90d', label: 'Last 90D' },
-              { id: 'all', label: 'Year 2026' },
+              { id: '7d', label: '7D' },
+              { id: '30d', label: '30D' },
+              { id: '90d', label: '90D' },
+              { id: 'all', label: '2026' },
             ].map(r => (
               <button
                 key={r.id}
                 onClick={() => setTimeRange(r.id as any)}
-                className={`px-2.5 py-1.5 rounded-lg transition-all ${
+                className={`px-2.5 py-1.5 rounded-lg transition-all whitespace-nowrap ${
                   timeRange === r.id
                     ? 'bg-white text-[#FF7800] shadow-sm font-extrabold'
                     : 'text-slate-600 hover:text-slate-900'
