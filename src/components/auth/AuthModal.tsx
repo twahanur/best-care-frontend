@@ -35,16 +35,6 @@ export function AuthModal({ isOpen, onClose, currentUser, onUserChange }: AuthMo
         email: loginEmail || email,
         password: loginPassword || password,
       });
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(
-          'best_car_user',
-          JSON.stringify({
-            role: res.user.role,
-            name: res.user.name,
-            email: res.user.email,
-          })
-        );
-      }
       onUserChange(res.user);
       onClose();
     } catch (err: any) {

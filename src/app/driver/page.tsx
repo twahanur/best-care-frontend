@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -61,7 +61,7 @@ export default function DriverDashboardPage() {
   const [otpError, setOtpError] = useState(false);
   const [passengerCallModal, setPassengerCallModal] = useState<Booking | null>(null);
 
-  const loadDriverData = async () => {
+  const loadDriverData = useCallback(async () => {
     try {
       setLoading(true);
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -107,11 +107,11 @@ export default function DriverDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     loadDriverData();
-  }, []);
+  }, [loadDriverData]);
 
   const handleTripResponse = async (bookingId: string, action: 'ACCEPT' | 'REJECT') => {
     if (!currentUser) return;
@@ -320,7 +320,7 @@ export default function DriverDashboardPage() {
             <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-white/10 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-white/10 text-center">
               <div className="px-2">
                 <div className="text-xl sm:text-2xl font-black text-amber-400">${estimatedEarnings.toFixed(0)}</div>
-                <div className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">Today's Fare</div>
+                <div className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">Today&apos;s Fare</div>
               </div>
               <div className="w-px h-8 bg-white/20 self-center"></div>
               <div className="px-2">
@@ -439,7 +439,7 @@ export default function DriverDashboardPage() {
                 <div>
                   <h3 className="text-base font-bold text-slate-800">No Dispatches in this Queue</h3>
                   <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                    You're all caught up! New chauffeur bookings and airport transfer assignments will appear here in real-time.
+                    You&apos;re all caught up! New chauffeur bookings and airport transfer assignments will appear here in real-time.
                   </p>
                 </div>
               </div>
@@ -694,7 +694,7 @@ export default function DriverDashboardPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-2">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">This Week's Earnings</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">This Week&apos;s Earnings</div>
                 <div className="text-3xl font-black text-slate-900">$1,450.00</div>
                 <div className="text-xs text-emerald-600 font-bold flex items-center gap-1">
                   <TrendingUp className="w-3.5 h-3.5" /> +14.2% vs previous week

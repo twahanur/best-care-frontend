@@ -26,6 +26,22 @@ export function BookingModal({ vehicle, onClose, onBookingComplete }: BookingMod
   const [loading, setLoading] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && vehicle) {
+      const cached = localStorage.getItem('best_car_user');
+      if (cached) {
+        try {
+          const user = JSON.parse(cached);
+          setCustomerName((prev) => prev || user.name || '');
+          setCustomerEmail((prev) => prev || user.email || '');
+          setCustomerPhone((prev) => prev || user.phone || '');
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [vehicle]);
+
   if (!vehicle) return null;
 
   // Calculate rental duration in days

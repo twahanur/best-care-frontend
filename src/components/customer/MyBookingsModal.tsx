@@ -32,7 +32,7 @@ export function MyBookingsModal({ isOpen, onClose, currentUser, onWriteReview }:
   const [cancelReason, setCancelReason] = useState('');
   const [selectedBookingForPass, setSelectedBookingForPass] = useState<Booking | null>(null);
 
-  const loadUserBookings = async () => {
+  const loadUserBookings = React.useCallback(async () => {
     if (!currentUser) return;
     setLoading(true);
     try {
@@ -43,13 +43,13 @@ export function MyBookingsModal({ isOpen, onClose, currentUser, onWriteReview }:
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
 
   useEffect(() => {
     if (isOpen) {
       loadUserBookings();
     }
-  }, [isOpen, currentUser]);
+  }, [isOpen, loadUserBookings]);
 
   if (!isOpen) return null;
 

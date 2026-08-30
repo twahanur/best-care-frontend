@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   User as UserIcon,
@@ -70,7 +71,7 @@ export default function CustomerDashboardPage() {
   // Re-booking modal
   const [selectedVehicleForBooking, setSelectedVehicleForBooking] = useState<Vehicle | null>(null);
 
-  const loadCustomerData = async () => {
+  const loadCustomerData = useCallback(async () => {
     try {
       setLoading(true);
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -119,11 +120,11 @@ export default function CustomerDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     loadCustomerData();
-  }, []);
+  }, [loadCustomerData]);
 
   const handleLogout = async () => {
     await api.logout();
@@ -577,12 +578,14 @@ export default function CustomerDashboardPage() {
                 className="bg-white border border-slate-200 hover:border-slate-300 rounded-3xl p-5 shadow-sm hover:shadow-md transition space-y-4"
               >
                 <div className="h-36 rounded-2xl bg-slate-100 overflow-hidden relative">
-                  <img
+                  <Image
                     src={car.image || (car.images && car.images[0]) || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80'}
                     alt={car.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/90 text-slate-800 backdrop-blur-sm shadow-sm">
+                  <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/90 text-slate-800 backdrop-blur-sm shadow-sm z-10">
                     {car.category || 'Luxury'}
                   </div>
                 </div>
@@ -821,7 +824,7 @@ export default function CustomerDashboardPage() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900">Update Profile & KYC Information</h3>
-                <p className="text-xs text-slate-500">Keep your contact and driver's license details up-to-date</p>
+                <p className="text-xs text-slate-500">Keep your contact and driver&apos;s license details up-to-date</p>
               </div>
               <button
                 onClick={() => setEditProfileOpen(false)}

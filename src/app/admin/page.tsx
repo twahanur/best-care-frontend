@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -206,7 +206,7 @@ export default function AdminDashboardPage() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   // Load telemetry data from backend
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setRefreshing(true);
     try {
       const [
@@ -265,7 +265,7 @@ export default function AdminDashboardPage() {
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [posForm.carId]);
 
   useEffect(() => {
     const verifyAdminSession = async () => {
@@ -331,7 +331,7 @@ export default function AdminDashboardPage() {
     };
 
     verifyAdminSession();
-  }, []);
+  }, [loadDashboardData]);
 
   const handleLogout = async () => {
     await api.logout();
@@ -585,6 +585,17 @@ export default function AdminDashboardPage() {
       setUsers(prev => prev.map(u => u.id === userId ? updated : u));
     } catch (err: any) {
       alert(`Failed to update user: ${err.message || 'Error'}`);
+    }
+  };
+
+  // Review Moderation Handler
+  const handleModerateReview = async (reviewId: string, isApproved: boolean) => {
+    try {
+      const updated = await api.moderateReview(reviewId, isApproved);
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, isApproved } : r));
+      alert(`Review ${isApproved ? 'Approved' : 'Hidden'} successfully.`);
+    } catch (err: any) {
+      alert(`Failed to moderate review: ${err.message || 'Error'}`);
     }
   };
 
@@ -2247,21 +2258,57 @@ export default function AdminDashboardPage() {
               <div className="flex items-center justify-between pb-4 border-b border-[#F3F4F6]">
                 <div>
                   <h3 className="font-bold text-lg text-[#111827]">Customer Reviews & Ratings</h3>
-                  <p className="text-xs text-[#6B7280]">Verified renter feedback and vehicle rating scores.</p>
+                  <p className="text-xs text-[#6B7280]">Verified renter feedback, moderation approval, and vehicle rating scores.</p>
                 </div>
+                <span className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
+                  {reviews.length} Total Reviews
+                </span>
               </div>
 
-              <div className="space-y-4">
-                {reviews.map((r) => (
-                  <div key={r.id} className="p-4 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="font-bold text-sm text-[#111827]">{r.userName || 'Renter'} • <span className="text-[#FF7800]">{r.carName || 'Vehicle'}</span></div>
-                      <div className="text-xs font-bold text-amber-500">★ {r.rating} / 5</div>
+              {reviews.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400">
+                  No customer reviews logged in the database yet.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((r) => (
+                    <div key={r.id} className="p-4 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="font-bold text-sm text-[#111827]">{r.userName || 'Renter'} • <span className="text-[#FF7800]">{r.carName || 'Vehicle'}</span></div>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            r.isApproved !== false
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-800 border border-rose-200'
+                          }`}>
+                            {r.isApproved !== false ? 'Approved' : 'Hidden'}
+                          </span>
+                        </div>
+                        <div className="text-xs font-bold text-amber-500">★ {r.rating} / 5</div>
+                      </div>
+                      <p className="text-xs text-[#4B5563] leading-relaxed italic">&ldquo;{r.comment}&rdquo;</p>
+                      {r.adminReply && (
+                        <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-100 text-[11px] text-blue-900">
+                          <strong>Admin Reply:</strong> {r.adminReply}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleModerateReview(r.id, r.isApproved === false)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                            r.isApproved !== false
+                              ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          }`}
+                        >
+                          {r.isApproved !== false ? 'Hide Review' : 'Approve Review'}
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-xs text-[#4B5563]">{r.comment}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -2515,7 +2562,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="text-right self-start sm:self-auto">
                   <div className="text-2xl font-extrabold text-amber-400">$380.00</div>
-                  <div className="text-[11px] text-emerald-200">Today's Payout Balance</div>
+                  <div className="text-[11px] text-emerald-200">Today&apos;s Payout Balance</div>
                 </div>
               </div>
 

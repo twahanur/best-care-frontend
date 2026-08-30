@@ -46,6 +46,7 @@ export default function CustomerHomePage() {
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
         onSelectVehicleForBooking={(v) => setSelectedVehicleForBooking(v)}
+        onViewVehicleDetails={(v) => setSelectedVehicleForDetail(v)}
       />
 
       {/* 4. Why Choose Us / Value Proposition */}

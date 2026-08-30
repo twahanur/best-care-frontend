@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -33,6 +33,20 @@ export default function LoginPage() {
   // Status States
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get('error');
+      if (err === 'admin_required') {
+        setError('Administrator access required. Please sign in with an Admin account.');
+      } else if (err === 'driver_required') {
+        setError('Chauffeur / Driver authorization required. Please sign in with a Driver account.');
+      } else if (err === 'auth_required') {
+        setError('Please sign in to access this portal.');
+      }
+    }
+  }, []);
 
   const demoAccounts = [
     {
