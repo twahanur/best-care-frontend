@@ -56,7 +56,11 @@ import {
   Star,
   Smartphone,
   Heart,
-  UserCheck
+  UserCheck,
+  Sparkles,
+  BarChart3,
+  Bot,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -69,6 +73,8 @@ import {
 } from 'recharts';
 import { api } from '@/services/api';
 import { BestCarLogo } from '@/components/common/BestCarLogo';
+import { ComprehensiveReports } from '@/components/admin/ComprehensiveReports';
+import { AIReportAgent } from '@/components/admin/AIReportAgent';
 import {
   DashboardMetrics,
   Booking,
@@ -772,7 +778,7 @@ export default function AdminDashboardPage() {
           {/* ============================================================ */}
           {userRole === 'ADMIN' && (
             <>
-              {/* MAIN MENU */}
+              {/* 1. MAIN CONSOLE & INTELLIGENCE */}
               <div className="space-y-1">
                 {!sidebarCollapsed && (
                   <div className="text-[11px] font-bold text-[#6B7280] px-3 mb-1.5">
@@ -780,7 +786,7 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
                 
-                {/* Dashboard */}
+                {/* Dashboard Overview */}
                 <button
                   onClick={() => setActiveMenu('dashboard')}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -791,158 +797,173 @@ export default function AdminDashboardPage() {
                 >
                   <div className="flex items-center gap-3">
                     <Grid className="w-4 h-4 text-[#FF7800]" />
-                    {!sidebarCollapsed && <span>Dashboard</span>}
+                    {!sidebarCollapsed && <span>Dashboard Overview</span>}
                   </div>
                   {!sidebarCollapsed && <ChevronDown className="w-3.5 h-3.5 text-[#FF7800]" />}
                 </button>
 
-                {/* Super Admin / Users */}
+                {/* AI Report Agent */}
                 <button
-                  onClick={() => setActiveMenu('superadmin')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                    activeMenu === 'superadmin'
-                      ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
+                  onClick={() => setActiveMenu('ai_agent_reports')}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                    activeMenu === 'ai_agent_reports'
+                      ? 'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-200/80 shadow-sm'
+                      : 'text-[#4B5563] hover:text-indigo-600 hover:bg-indigo-50/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
+                    {!sidebarCollapsed && <span>AI Report Agent</span>}
+                  </div>
+                  {!sidebarCollapsed && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-[9px] font-black uppercase tracking-wider">
+                      AI Gen
+                    </span>
+                  )}
+                </button>
+
+                {/* Comprehensive Reports */}
+                <button
+                  onClick={() => setActiveMenu('reports')}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                    activeMenu === 'reports'
+                      ? 'bg-[#FFF3EB] text-[#FF7800]'
                       : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Shield className="w-4 h-4" />
-                    {!sidebarCollapsed && <span>Users & Drivers</span>}
+                    <BarChart3 className="w-4 h-4 text-[#FF7800]" />
+                    {!sidebarCollapsed && <span>Fleet & Business Reports</span>}
                   </div>
-                  {!sidebarCollapsed && <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF]" />}
+                  {!sidebarCollapsed && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-orange-100 text-[#FF7800] text-[9px] font-bold">
+                      Multi
+                    </span>
+                  )}
                 </button>
               </div>
 
-              {/* INVENTORY / FLEET MENU */}
-              <div className="space-y-1 pt-1">
+              {/* 2. FLEET & INVENTORY */}
+              <div className="space-y-1 pt-2">
                 {!sidebarCollapsed && (
                   <div className="text-[11px] font-bold text-[#6B7280] px-3 mb-1.5">
-                    Inventory & Fleet
+                    Fleet Management
                   </div>
                 )}
 
-                {[
-                  { id: 'products', label: 'All Fleet Cars', icon: Package },
-                  { id: 'create-product', label: 'Add Vehicle', icon: PlusCircle, action: handleOpenAddCar },
-                  { id: 'expired-products', label: 'In Maintenance', icon: Clock },
-                  { id: 'low-stocks', label: 'Out of Service', icon: TrendingDown },
-                  { id: 'category', label: 'Category', icon: Grid },
-                  { id: 'subcategory', label: 'Sub Category / Fuel', icon: Layers },
-                  { id: 'brands', label: 'Brands', icon: Award },
-                  { id: 'units', label: 'Rate Units & Hours', icon: Box },
-                  { id: 'variant-attributes', label: 'Features & Specs', icon: SlidersHorizontal },
-                  { id: 'warranties', label: 'Protection Plans', icon: ShieldCheck },
-                  { id: 'print-barcode', label: 'Print Barcode Pass', icon: Barcode },
-                  { id: 'print-qr', label: 'Print QR Pass', icon: QrCode },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        if (item.action) item.action();
-                        else setActiveMenu(item.id);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                        activeMenu === item.id
-                          ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
-                          : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
-                      }`}
-                      title={sidebarCollapsed ? item.label : undefined}
-                    >
-                      <Icon className="w-4 h-4 shrink-0 text-[#6B7280]" />
-                      {!sidebarCollapsed && <span>{item.label}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* LOCATIONS & HUBS */}
-              <div className="space-y-1 pt-1">
-                {!sidebarCollapsed && (
-                  <div className="text-[11px] font-bold text-[#6B7280] px-3 mb-1.5">
-                    Hubs & Relocation
-                  </div>
-                )}
                 <button
-                  onClick={() => setActiveMenu('hubs')}
-                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                    activeMenu === 'hubs'
+                  onClick={() => setActiveMenu('products')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    activeMenu === 'products'
                       ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
                       : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
                   }`}
                 >
-                  <MapPin className="w-4 h-4 shrink-0 text-[#6B7280]" />
-                  {!sidebarCollapsed && <span>Station Hubs</span>}
+                  <Package className="w-4 h-4 shrink-0 text-[#6B7280]" />
+                  {!sidebarCollapsed && <span>All Fleet Cars</span>}
                 </button>
+
                 <button
-                  onClick={() => setActiveMenu('transfer')}
-                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                    activeMenu === 'transfer'
+                  onClick={handleOpenAddCar}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50 transition-colors"
+                >
+                  <PlusCircle className="w-4 h-4 shrink-0 text-[#6B7280]" />
+                  {!sidebarCollapsed && <span>Add New Vehicle</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveMenu('expired-products')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    activeMenu === 'expired-products'
                       ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
                       : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
                   }`}
                 >
-                  <ArrowLeftRight className="w-4 h-4 shrink-0 text-[#6B7280]" />
-                  {!sidebarCollapsed && <span>Relocate Vehicles</span>}
+                  <Clock className="w-4 h-4 shrink-0 text-[#6B7280]" />
+                  {!sidebarCollapsed && <span>Maintenance Workshop</span>}
                 </button>
               </div>
 
-              {/* BOOKINGS & ORDERS */}
-              <div className="space-y-1 pt-1">
+              {/* 3. BOOKINGS & OPERATIONS */}
+              <div className="space-y-1 pt-2">
                 {!sidebarCollapsed && (
                   <div className="text-[11px] font-bold text-[#6B7280] px-3 mb-1.5">
                     Bookings & Dispatch
                   </div>
                 )}
-                {[
-                  { id: 'driver-dispatch', label: 'Driver Dispatch', icon: Compass },
-                  { id: 'pos', label: 'POS Counter Order', icon: Monitor },
-                  { id: 'orders', label: 'Bookings List', icon: FileSpreadsheet },
-                  { id: 'rental-returns', label: 'Returns & Dropoff', icon: RotateCcw },
-                  { id: 'pricing-rules', label: 'Dynamic Pricing', icon: TrendingUp },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveMenu(item.id)}
-                      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                        activeMenu === item.id
-                          ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
-                          : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon className="w-4 h-4 shrink-0 text-[#6B7280]" />
-                        {!sidebarCollapsed && <span>{item.label}</span>}
-                      </div>
-                    </button>
-                  );
-                })}
+
+                <button
+                  onClick={() => setActiveMenu('orders')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    activeMenu === 'orders'
+                      ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
+                      : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
+                  }`}
+                >
+                  <FileSpreadsheet className="w-4 h-4 shrink-0 text-[#6B7280]" />
+                  {!sidebarCollapsed && <span>Bookings List</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveMenu('driver-dispatch')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    activeMenu === 'driver-dispatch'
+                      ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
+                      : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
+                  }`}
+                >
+                  <Compass className="w-4 h-4 shrink-0 text-[#6B7280]" />
+                  {!sidebarCollapsed && <span>Driver Dispatch</span>}
+                </button>
+
+                <button
+                  onClick={() => setActiveMenu('rental-returns')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    activeMenu === 'rental-returns'
+                      ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
+                      : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
+                  }`}
+                >
+                  <RotateCcw className="w-4 h-4 shrink-0 text-[#6B7280]" />
+                  {!sidebarCollapsed && <span>Returns & Dropoff</span>}
+                </button>
               </div>
 
-              {/* PROMO & REVIEWS */}
-              <div className="space-y-1 pt-1">
+              {/* 4. USERS & PROMO */}
+              <div className="space-y-1 pt-2">
                 {!sidebarCollapsed && (
                   <div className="text-[11px] font-bold text-[#6B7280] px-3 mb-1.5">
-                    Promo & Reports
+                    Users & Promo
                   </div>
                 )}
+
+                <button
+                  onClick={() => setActiveMenu('superadmin')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    activeMenu === 'superadmin'
+                      ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
+                      : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
+                  }`}
+                >
+                  <Shield className="w-4 h-4 shrink-0 text-[#6B7280]" />
+                  {!sidebarCollapsed && <span>Users & Drivers</span>}
+                </button>
+
                 <button
                   onClick={() => setActiveMenu('coupons')}
-                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                     activeMenu === 'coupons'
                       ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
                       : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
                   }`}
                 >
                   <Tag className="w-4 h-4 shrink-0 text-[#6B7280]" />
-                  {!sidebarCollapsed && <span>Coupons</span>}
+                  {!sidebarCollapsed && <span>Discount Coupons</span>}
                 </button>
+
                 <button
                   onClick={() => setActiveMenu('reviews')}
-                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                     activeMenu === 'reviews'
                       ? 'bg-[#FFF3EB] text-[#FF7800] font-bold'
                       : 'text-[#4B5563] hover:text-[#FF7800] hover:bg-slate-50'
@@ -1399,7 +1420,62 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
               </div>
+
+              {/* QUICK INTELLIGENCE & REPORTS SHORTCUT BANNER */}
+              <div className="bg-gradient-to-r from-[#0A1B39] via-slate-900 to-indigo-950 p-6 rounded-3xl text-white shadow-lg border border-slate-700/50 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF7800] to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20 shrink-0">
+                    <Sparkles className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-white">AI Fleet Intelligence & Deep Analytics</h3>
+                    <p className="text-xs text-slate-300">
+                      Generate car-basis, day-wise timeline, category share, and driver reports instantly in Bengali or English with visual charts and tables.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <button
+                    onClick={() => setActiveMenu('ai_agent_reports')}
+                    className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF7800] to-amber-500 hover:from-[#E66C00] hover:to-amber-600 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Ask AI Agent</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveMenu('reports')}
+                    className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    <span>Open Full Reports</span>
+                  </button>
+                </div>
+              </div>
             </>
+          )}
+
+          {/* ============================================================ */}
+          {/* VIEW: AI REPORT AGENT (NATURAL LANGUAGE ANALYTICS) */}
+          {/* ============================================================ */}
+          {activeMenu === 'ai_agent_reports' && (
+            <AIReportAgent
+              vehicles={vehicles}
+              bookings={bookings}
+              metrics={metrics}
+            />
+          )}
+
+          {/* ============================================================ */}
+          {/* VIEW: COMPREHENSIVE MULTI-DIMENSIONAL REPORTS */}
+          {/* ============================================================ */}
+          {activeMenu === 'reports' && (
+            <ComprehensiveReports
+              vehicles={vehicles}
+              bookings={bookings}
+              metrics={metrics}
+              onOpenAIAgent={() => setActiveMenu('ai_agent_reports')}
+            />
           )}
 
           {/* ============================================================ */}

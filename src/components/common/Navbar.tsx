@@ -65,8 +65,17 @@ export function Navbar({ currentUser, onOpenAuth, onOpenMyTrips }: NavbarProps) 
             </Link>
           </nav>
 
-          {/* Action CTAs: Single Login / Register or Role-Based Dashboard */}
+          {/* Action CTAs: AI Concierge & Single Login / Register or Role-Based Dashboard */}
           <div className="hidden md:flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-ai-concierge'))}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
+              <span>AI Concierge</span>
+            </button>
+
             {currentUser ? (
               <div className="flex items-center gap-2">
                 {/* Role-Specific Dashboard Button */}
@@ -96,7 +105,7 @@ export function Navbar({ currentUser, onOpenAuth, onOpenMyTrips }: NavbarProps) 
                     {onOpenMyTrips && (
                       <button
                         onClick={onOpenMyTrips}
-                        className="text-xs font-bold text-[#374151] hover:text-[#111827] px-3 py-2 rounded-xl border border-[#E5E7EB] hover:bg-[#F9FAFB] transition-all flex items-center gap-1.5 shadow-sm"
+                        className="text-xs font-bold text-[#374151] hover:text-[#111827] px-3 py-2 rounded-xl border border-[#E5E7EB] hover:bg-[#F9FAFB] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
                       >
                         <Calendar className="w-3.5 h-3.5 text-[#0284C7]" />
                         <span>My Trips</span>
@@ -116,7 +125,7 @@ export function Navbar({ currentUser, onOpenAuth, onOpenMyTrips }: NavbarProps) 
                 {onOpenAuth && (
                   <button
                     onClick={onOpenAuth}
-                    className="flex items-center gap-2 border border-[#E5E7EB] rounded-xl px-3 py-1.5 bg-[#F9FAFB] hover:bg-slate-100 transition-all text-xs font-bold text-[#111827]"
+                    className="flex items-center gap-2 border border-[#E5E7EB] rounded-xl px-3 py-1.5 bg-[#F9FAFB] hover:bg-slate-100 transition-all text-xs font-bold text-[#111827] cursor-pointer"
                     title={`Logged in as ${currentUser.name} (${currentUser.role})`}
                   >
                     <div className="w-6 h-6 rounded-full bg-[#111827] text-white text-[11px] font-extrabold flex items-center justify-center">
