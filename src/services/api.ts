@@ -571,17 +571,16 @@ export const api = {
 
   async agenticChat(query: string, sessionId?: string): Promise<AgentChatResponse> {
     try {
-      const res = await client.post<AgentChatResponse>('/ai/chat', { query, sessionId });
+      const res = await client.post<AgentChatResponse>('/ai/chat', { query, sessionId }, { timeout: 65000 });
       return res.data;
-    } catch {
-      return {
-        answer: 'Best Care 24/7 Concierge: Unlimited mileage is included on all bookings over 3 days.',
-        language: 'english',
-        intent: 'policy_inquiry',
-        confidence_score: 0.95,
-        sources: [],
-        matched_vehicles: []
-      };
+    } catch (err: any) {
+      // If it failed because of cold start or network error, retry once
+      try {
+        const retryRes = await client.post<AgentChatResponse>('/ai/chat', { query, sessionId }, { timeout: 65000 });
+        return retryRes.data;
+      } catch (retryErr: any) {
+        throw new Error(retryErr?.response?.data?.message || 'Connection error. Server is waking up, please try again.');
+      }
     }
   },
 

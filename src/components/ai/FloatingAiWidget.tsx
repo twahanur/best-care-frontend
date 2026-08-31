@@ -2,12 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sparkles, MessageSquare, X } from 'lucide-react';
+import { api } from '@/services/api';
 import { AiConciergeModal } from './AiConciergeModal';
+
 
 export function FloatingAiWidget() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    // Silent warmup ping so backend container wakes up in background
+    api.getCategoriesStats().catch(() => {});
+
     const handleOpen = () => setIsOpen(true);
     const handleToggle = () => setIsOpen((prev) => !prev);
     const handleClose = () => setIsOpen(false);
