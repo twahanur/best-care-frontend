@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, X, Send, Bot, User, ShieldCheck, Car, ArrowRight, RotateCcw, Minus, CheckCircle2 } from 'lucide-react';
+import { Sparkles, X, Send, Bot, User, Car, ArrowRight, RotateCcw, Minus, CheckCircle2 } from 'lucide-react';
 import { api } from '@/services/api';
 
 interface Message {
@@ -325,26 +325,6 @@ export function AiConciergeModal({ isOpen, onClose, onSelectCar }: AiConciergeMo
                     >
                       Cancel
                     </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Grounded Sources Badges */}
-              {msg.sources && msg.sources.length > 0 && (
-                <div className="pt-1.5 border-t border-slate-800/70 space-y-1">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                    <ShieldCheck className="w-2.5 h-2.5 text-emerald-400" />
-                    Verified Information
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {msg.sources.slice(0, 2).map((s: any, sIdx: number) => (
-                      <span
-                        key={sIdx}
-                        className="text-[9px] bg-slate-950 border border-slate-800 text-slate-300 px-2 py-0.5 rounded flex items-center gap-1"
-                      >
-                        <span className="text-blue-400 font-semibold">{s.category || 'Official Guide'}:</span> {s.title || s.type}
-                      </span>
-                    ))}
                   </div>
                 </div>
               )}
